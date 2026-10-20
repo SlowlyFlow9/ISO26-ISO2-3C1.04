@@ -10,3 +10,19 @@ Para la funcionalidad del personal administrativo cuando nos habla de la gestion
 En el caso de la funcionalidad de los administradores del Sistema , la gestion de roles y permisos la hemos hecho con la idea de gestion que habiamos redactado inicialmente, de forma que seran requisitos distintos añadir roles, eliminarlos, editarlos y consultarlos , al igual que con los permisos.
 
 La integracion con otros sistemas lo hemos considerado como un unico requisito que es configurar otros sistemas.
+
+# Decisiones del proyecto
+## D-001 · Agente para implementar
+Fecha: 13/10 · It. 0 · Acta: 13/10
+...
+## D-002 · Estructura Maven multimódulo
+Fecha: 19/10 · It. 0 · Acta: 19/10 · Issue: #12
+Contexto: hay dos aplicaciones, servidor y
+cliente, en un mismo repositorio.
+Decisión: pom padre radiodiagnostico con dos
+módulos: servidor y cliente.
+Alternativas: dos repositorios; un solo módulo.
+Motivo: un mvn verify construye todo y las
+versiones se fijan una vez en el padre.
+Consecuencias: cada módulo con su versión; al
+cambiar la del padre, actualizar <parent>.
