@@ -33,20 +33,27 @@ Contexto: al tener muchos requisitos , a la hora de planificar no podriamos hace
 Decision: agrupar varios casos de uso en una iteración.
 
 ## D-005 · Atributos de la entidad Paciente
-Fecha: 24/10 · It. 0 · Issue: 20
+Fecha: 24/10 · It. 1 · Issue: 20
 Contexto: el enunciado no define los datos de un paciente y CU22, CU23 y CU24 comparten la entidad.
 Decisión: Paciente tiene id, nombre, apellidos, dni, fechaNacimiento, telefono, email, direccion, numeroTarjetaSanitaria, fechaAlta y activo.
 Alternativas: modelar historia clínica y datos de seguro. Motivo: se evita sobreingeniería, eso queda para la integración con HCE.
 Consecuencias: CU23 y CU24 usan esta misma entidad; la baja es lógica con activo.
 
 ## D-006 · Identificación única por DNI/NIE y tarjeta sanitaria
-Fecha: 24/10 · It. 0 · Issue: 20
+Fecha: 24/10 · It. 1 · Issue: 20
 Contexto: hay que evitar pacientes duplicados.
 Decisión: dni y numeroTarjetaSanitaria son únicos; el alta falla si ya existen.
 Consecuencias: el servicio lanza PacienteDuplicadoException.
 
 ## D-007 · El alta de paciente no crea cuenta de acceso
-Fecha: 24/10 · It. 0 · Issue: 20
+Fecha: 24/10 · It. 1 · Issue: 20
 Contexto: los pacientes también son usuarios del sistema, pero el RF22 solo habla de dar de alta al paciente.
 Decisión: CU22 solo registra los datos del paciente; el acceso se resolverá con SSO / gestión de usuarios.
 
+## D-008 · Baja lógica
+Fecha:26/10 · It. 1 · Issue: 19
+Contexto: Baja lógica en lugar de borrado físico, para no romper el historial de pruebas. *(propuesta)*
+
+## D-009· Nombre de tipo unico
+Fecha: 26/10 · It. 1 · Issue: 19
+Contexto: El nombre del tipo es único. *(propuesta)*
