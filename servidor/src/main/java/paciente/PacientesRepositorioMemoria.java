@@ -1,6 +1,8 @@
 package paciente;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -30,4 +32,26 @@ public class PacientesRepositorioMemoria implements PacientesRepositorio {
                 .filter(p -> p.getNumeroTarjetaSanitaria() != null && p.getNumeroTarjetaSanitaria().equalsIgnoreCase(tarjeta))
                 .findFirst();
     }
+
+
+        private final List<RegistroModificacion> modificaciones = new ArrayList<>();
+
+    @Override
+    public synchronized List<Paciente> buscar(String criterio) {
+        String c = criterio.trim().toLowerCase();
+        return pacientes.values().stream()
+                .filter(Paciente::isActivo)
+                .filter(p -> contiene(p.getNombre(), c) || contiene(p.getApellidos(), c) || contiene(p.getDni(), c))
+                .toList();
+    }
+
+    @Override
+    public synchronized void registrarModificacion(RegistroModificacion registro) { modificaciones.add(registro); }
+
+    @Override
+    public synchronized List<RegistroModificacion> modificaciones(long pacienteId) {
+        return modificaciones.stream().filter(m -> m.pacienteId() == pacienteId).toList();
+    }
+
+    private static boolean contiene(String texto, String c) { return texto != null && texto.toLowerCase().contains(c); }
 }
