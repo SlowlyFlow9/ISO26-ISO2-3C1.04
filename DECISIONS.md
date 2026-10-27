@@ -28,11 +28,6 @@ Contexto: al tener 64 requisitos, esto nos impedía hacer una planificación que
 Decisión: unificar los requisitos que dividimos de gestión en solo uno, es decir, aquellos que dividimos en 4 ahora pasan a ser solo 1.
 Consecuencias: cambiar de nuevo los requisitos de la wiki y el diagrama de casos de uso del cliente.
 
-## D-019 · Casos de uso planificación
-Fecha: 22/10 · It. 0 · Acta: 22/10
-Contexto: al tener muchos requisitos , a la hora de planificar no podriamos hacer una iteracion por caso de uso por tema de tiempo.
-Decision: agrupar varios casos de uso en una iteración.
-
 ## D-005 · Atributos de la entidad Paciente
 Fecha: 24/10 · It. 1 · Issue: #20, #23, #26
 Contexto: el enunciado no define los datos de un paciente y CU22, CU23 y CU24 comparten la entidad.
@@ -122,3 +117,8 @@ Fecha: 27/10 · It. 3 · Issue: #24
 Contexto: CU11, CU12 y CU13 trabajan con las mismas solicitudes.
 Decisión: la solicitud es la entidad SolicitudPrueba, compartida por los tres. La indicación clínica, la justificación y la prioridad (urgente, preferente u ordinaria) son obligatorias. El médico prescribe y el personal administrativo gestiona la cita, como procesos separados.
 Consecuencias: el estado inicial de la solicitud y los campos definitivos se cierran con el equipo en la It. 3.
+
+## D-019 · Casos de uso planificación
+Fecha: 22/10 · It. 0 · Acta: 22/10
+Contexto: al tener muchos requisitos , a la hora de planificar no podriamos hacer una iteracion por caso de uso por tema de tiempo.
+Decision: agrupar varios casos de uso en una iteración.
