@@ -72,13 +72,43 @@ Consecuencias: se evita duplicar información y CU34 depende de la entidad TipoP
 
 ## D-013 · Validación de formato en cliente y de negocio en servidor
 
-Fecha: 27/10 · It. 2 · Issue: #19 Contexto: la interfaz de CU33 (tipos de pruebas diagnósticas) puede comprobar datos antes de enviarlos, pero las reglas de negocio (nombre único, duración válida, permisos) también las aplica el servicio. Decisión: el cliente solo valida el formato (campos obligatorios vacíos, duración mayor que 0); la validación de negocio es siempre la del servidor, y el cliente muestra los errores que este devuelve. Alternativas: duplicar las reglas de negocio en el cliente. Motivo: evita reglas repetidas que se desincronicen y garantiza que ninguna regla se salte llamando al servicio directamente. Consecuencias: cualquier cambio en una regla de negocio se hace solo en el servidor; el cliente debe gestionar y mostrar los errores del servicio. (propuesta)
+Fecha: 27/10 · It. 2 · Issue: #19 
+Contexto: la interfaz de CU33 (tipos de pruebas diagnósticas) puede comprobar datos antes de enviarlos, pero las reglas de negocio (nombre único, duración válida, permisos) también las aplica el servicio.
+Decisión: el cliente solo valida el formato (campos obligatorios vacíos, duración mayor que 0); la validación de negocio es siempre la del servidor, y el cliente muestra los errores que este devuelve.
+Consecuencias: cualquier cambio en una regla de negocio se hace solo en el servidor; el cliente debe gestionar y mostrar los errores del servicio. (propuesta)
 
 ## D-014 · Confirmación explícita al desactivar un tipo de prueba
 
-Fecha: 27/10 · It. 2 · Issue: #19 Contexto: desactivar un tipo de prueba es una baja lógica (D-008) que lo retira de la prescripción, y puede haber pruebas pendientes de ese tipo. Decisión: la interfaz pide confirmación en un diálogo antes de desactivar, y avisa si el servicio indica que hay pruebas pendientes. Alternativas: desactivar directamente con un solo clic; permitir deshacer después. Motivo: evita desactivaciones por error y deja claro el efecto antes de aplicarlo. Consecuencias: el cliente necesita el aviso de pruebas pendientes que devuelve el servidor; la desactivación requiere dos pasos. (propuesta)
+Fecha: 27/10 · It. 2 · Issue: #19 
+Contexto: desactivar un tipo de prueba es una baja lógica (D-008) que lo retira de la prescripción, y puede haber pruebas pendientes de ese tipo. 
+Decisión: la interfaz pide confirmación en un diálogo antes de desactivar, y avisa si el servicio indica que hay pruebas pendientes. 
+Consecuencias: el cliente necesita el aviso de pruebas pendientes que devuelve el servidor; la desactivación requiere dos pasos. (propuesta)
 
 ## D-015 · Textos de los mensajes de error de la interfaz
 
-Fecha: 27/10 · It. 2 · Issue: #19 Contexto: el servidor devuelve errores identificables (nombre duplicado, duración inválida, tipo no encontrado, sin permiso) y el cliente tiene que mostrarlos al administrador. Decisión: pendiente de cerrar con el equipo la redacción exacta de cada mensaje y si se muestran en el propio formulario o en un aviso aparte. Alternativas: mostrar el mensaje técnico del servidor tal cual; usar textos propios del cliente por cada código de error. Motivo: pendiente. Consecuencias: hasta decidirlo, los mensajes son provisionales y puede cambiar el cliente sin afectar al contrato del servidor. (pendiente)
+Fecha: 27/10 · It. 2 · Issue: #19 
+Contexto: el servidor devuelve errores identificables (nombre duplicado, duración inválida, tipo no encontrado, sin permiso) y el cliente tiene que mostrarlos al administrador. 
+Decisión: pendiente de cerrar con el equipo la redacción exacta de cada mensaje y si se muestran en el propio formulario o en un aviso aparte. Alternativas: mostrar el mensaje técnico del servidor tal cual; usar textos propios del cliente por cada código de error. Motivo: pendiente. Consecuencias: hasta decidirlo, los mensajes son provisionales y puede cambiar el cliente sin afectar al contrato del servidor. (pendiente)
+
+## D-016 · Baja lógica de los tipos de prueba
+
+Fecha: 27/10 · It. 2 · Issue: #19 
+Contexto: los tipos de prueba se referencian desde protocolos, prescripciones y pruebas realizadas, y borrarlos rompería el historial (mismo criterio que D-008). Decisión: desactivar un tipo marca `activo` a falso y no borra el registro; un tipo inactivo deja de ofrecerse al prescribir. Motivo: se conserva el historial y se puede revertir. Consecuencias: `listar` muestra por defecto solo los activos y el servicio no expone borrado. (propuesta)
+
+## D-017 · Unicidad del nombre del tipo de prueba
+
+Fecha: 27/10 · It. 2 · Issue: #19 
+Contexto: los tipos se eligen por nombre y dos nombres casi iguales confundirían al personal. 
+Decisión: el nombre es único, sin distinguir mayúsculas ni espacios sobrantes; el alta o la modificación falla si ya existe. 
+Motivo: evita duplicados sin añadir un código. 
+Consecuencias: el servicio normaliza el nombre y lanza `TipoPruebaDuplicadoException`, igual que en D-006. (propuesta)
+
+## D-018 · Control de rol sencillo hasta It12
+
+Fecha: 27/10 · It. 2 · Issue: #19 
+Contexto: solo el Administrador puede escribir, pero roles y permisos (CU38 y CU39) llegan en It12. 
+Decisión: hasta entonces el servicio comprueba el rol Administrador en cada operación de escritura, en un único punto.
+Consecuencias: en It12 hay que sustituir esta comprobación por el control basado en permisos. (propuesta)
+
+
 
