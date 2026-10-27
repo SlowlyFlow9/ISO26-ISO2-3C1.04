@@ -50,13 +50,14 @@ Decisión: CU22 solo registra los datos del paciente; el acceso se resolverá co
 Fecha: 26/10 · It. 2 · Issue: #19, #29
 Contexto: desactivar un tipo no debe romper el historial de pruebas ya realizadas.
 Decisión: desactivar(id) pone activo = false y no hay borrado físico. El tipo deja de aparecer para prescribir pero se conserva en las pruebas ya realizadas. (propuesta)
-Consecuencias: el mismo criterio se aplica a los protocolos (D-011).
+Motivo: se conserva el historial y se puede revertir.
+Consecuencias: `listar` muestra por defecto solo los activos y el servicio no expone borrado. El mismo criterio se aplica a los protocolos (D-011).
 
 ## D-009 · Nombre único de los tipos de prueba
 Fecha: 26/10 · It. 2 · Issue: #19, #29
 Contexto: dos tipos con el mismo nombre confundirían al prescribir.
 Decisión: el nombre es único, sin distinguir mayúsculas ni espacios sobrantes. (propuesta)
-Consecuencias: un nombre duplicado se rechaza con un error identificable.
+Consecuencias: el servicio normaliza el nombre y el alta o la modificación lanza `TipoPruebaDuplicadoException` si ya existe, igual que en D-006.
 
 ## D-010 · Baja de paciente: borrado lógico
 Fecha: 27/10 · It. 1 · Issue: #26
@@ -104,7 +105,7 @@ Consecuencias: hasta decidirlo, los mensajes son provisionales y puede cambiar e
 Fecha: 27/10 · It. 1 · Issue: #19, #20, #23, #24, #25, #26, #29
 Contexto: la gestión de roles y permisos (CU38 y CU39) llega en la It. 12.
 Decisión: hasta entonces cada servicio comprueba el rol de forma simple: Personal administrativo para pacientes, Administrador del Sistema para tipos y protocolos y Médico para prescribir. Los demás roles solo consultan.
-Consecuencias: un usuario sin el rol recibe un error de permiso; en la It. 12 se sustituye por la gestión de roles.
+Consecuencias: un usuario sin el rol recibe un error de permiso. La comprobación está en un único punto del servicio, para sustituirla en la It. 12 por el control basado en permisos.
 
 ## D-017 · Auditoría de las modificaciones
 Fecha: 27/10 · It. 1 · Issue: #23, #29
