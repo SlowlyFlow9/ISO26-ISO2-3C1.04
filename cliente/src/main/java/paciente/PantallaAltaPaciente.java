@@ -17,6 +17,7 @@ import javax.swing.SwingUtilities;
 /** CU22: formulario de alta de paciente. Solo valida formato (D-013); lo demás lo decide el servicio. */
 public class PantallaAltaPaciente extends JFrame {
     private final PacientesService servicio;
+    private final Usuario usuario;
     private final JTextField nombre = new JTextField(20);
     private final JTextField apellidos = new JTextField(20);
     private final JTextField dni = new JTextField(20);
@@ -28,9 +29,10 @@ public class PantallaAltaPaciente extends JFrame {
     private final JTextField direccion = new JTextField(20);
     private final JTextField tarjeta = new JTextField(20);
 
-    public PantallaAltaPaciente(PacientesService servicio) {
+    public PantallaAltaPaciente(PacientesService servicio, Usuario usuario) {
         super("Alta de paciente");
         this.servicio = servicio;
+        this.usuario = usuario;
         JPanel formulario = new JPanel(new GridLayout(0, 2, 6, 6));
         campo(formulario, "Nombre *", nombre);
         campo(formulario, "Apellidos *", apellidos);
@@ -93,9 +95,14 @@ public class PantallaAltaPaciente extends JFrame {
             return;
         }
         try {
-            Paciente registrado = servicio.crear(p);
+            // ponytail: la llamada bloquea la interfaz hasta que responde el servidor; mover a un hilo aparte si la espera molesta
+            Paciente registrado = servicio.crear(usuario, p);
             JOptionPane.showMessageDialog(this, resumen(registrado), "Paciente dado de alta", JOptionPane.INFORMATION_MESSAGE);
             limpiar();
+        } catch (SinPermisoException ex) {
+            error(ex.getMessage());
+        } catch (ServicioNoDisponibleException ex) {
+            error(ex.getMessage());
         } catch (DatosInvalidosException ex) {
             error(String.join("\n", ex.getErrores()));
         } catch (PacienteDuplicadoException ex) {
@@ -128,8 +135,19 @@ public class PantallaAltaPaciente extends JFrame {
         anio.setSelectedIndex(0);
     }
 
+    /** La pantalla de alta solo está disponible para el Personal administrativo (D-016). */
+    public static boolean disponiblePara(Usuario usuario) { return usuario.puedeDarDeAltaPacientes(); }
+
+    /** Uso: PantallaAltaPaciente [ROL] [URL del servidor | simulado]; por defecto PERSONAL_ADMINISTRATIVO y http://localhost:8080. */
     public static void main(String[] args) {
-        // ponytail: servicio simulado, sustituir por la implementación real cuando exista el servidor (D-022)
-        SwingUtilities.invokeLater(() -> new PantallaAltaPaciente(new PacientesServiceSimulado()).setVisible(true));
+        Rol rol = args.length > 0 ? Rol.valueOf(args[0]) : Rol.PERSONAL_ADMINISTRATIVO;
+        String url = args.length > 1 ? args[1] : "http://localhost:8080";
+        Usuario usuario = new Usuario(System.getProperty("user.name"), rol);
+        if (!disponiblePara(usuario)) {
+            JOptionPane.showMessageDialog(null, "El rol " + rol + " no puede dar de alta pacientes", "Sin permiso", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        PacientesService servicio = url.equals("simulado") ? new PacientesServiceSimulado() : new PacientesServiceHttp(url);
+        SwingUtilities.invokeLater(() -> new PantallaAltaPaciente(servicio, usuario).setVisible(true));
     }
 }

@@ -4,13 +4,16 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Servicio en memoria para probar el cliente hasta que exista el servidor. Aplica las reglas de D-006 y de la issue #20 como lo hará el servidor. */
+/** Servicio en memoria para probar el cliente sin servidor. Aplica las mismas reglas que el servidor (issue #20, D-006, D-016). */
 public class PacientesServiceSimulado implements PacientesService {
     private final List<Paciente> pacientes = new ArrayList<>();
     private long siguienteId = 1;
 
     @Override
-    public Paciente crear(Paciente datos) throws DatosInvalidosException, PacienteDuplicadoException {
+    public Paciente crear(Usuario solicitante, Paciente datos)
+            throws SinPermisoException, DatosInvalidosException, PacienteDuplicadoException {
+        if (!solicitante.puedeDarDeAltaPacientes())
+            throw new SinPermisoException("Solo el Personal administrativo puede dar de alta pacientes");
         List<String> errores = ValidadorPaciente.validar(datos);
         if (!errores.isEmpty()) throw new DatosInvalidosException(errores);
 

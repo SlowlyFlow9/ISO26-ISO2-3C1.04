@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 
 class PacientesServiceSimuladoTest {
+    private static final Usuario ADMIN = new Usuario("ana", Rol.PERSONAL_ADMINISTRATIVO);
 
     private Paciente paciente(String dni, String tarjeta) {
         Paciente p = new Paciente();
@@ -25,7 +26,7 @@ class PacientesServiceSimuladoTest {
     void altaAsignaIdFechaAltaYActivo() throws Exception {
         Paciente entrada = paciente("12345678Z", "T1");
         entrada.setActivo(false);
-        Paciente r = new PacientesServiceSimulado().crear(entrada);
+        Paciente r = new PacientesServiceSimulado().crear(ADMIN, entrada);
         assertEquals(1L, r.getId());
         assertNotNull(r.getFechaAlta());
         assertTrue(r.isActivo());
@@ -34,28 +35,28 @@ class PacientesServiceSimuladoTest {
     @Test
     void dniRepetidoLanzaDuplicado() throws Exception {
         PacientesServiceSimulado s = new PacientesServiceSimulado();
-        s.crear(paciente("12345678Z", "T1"));
-        assertThrows(PacienteDuplicadoException.class, () -> s.crear(paciente("12345678z", "T2")));
+        s.crear(ADMIN, paciente("12345678Z", "T1"));
+        assertThrows(PacienteDuplicadoException.class, () -> s.crear(ADMIN, paciente("12345678z", "T2")));
     }
 
     @Test
     void tarjetaRepetidaLanzaDuplicado() throws Exception {
         PacientesServiceSimulado s = new PacientesServiceSimulado();
-        s.crear(paciente("12345678Z", "T1"));
-        assertThrows(PacienteDuplicadoException.class, () -> s.crear(paciente("87654321X", "T1")));
+        s.crear(ADMIN, paciente("12345678Z", "T1"));
+        assertThrows(PacienteDuplicadoException.class, () -> s.crear(ADMIN, paciente("87654321X", "T1")));
     }
 
     @Test
     void variosSinTarjetaNoSonDuplicados() throws Exception {
         PacientesServiceSimulado s = new PacientesServiceSimulado();
-        s.crear(paciente("12345678Z", null));
-        s.crear(paciente("87654321X", ""));
+        s.crear(ADMIN, paciente("12345678Z", null));
+        s.crear(ADMIN, paciente("87654321X", ""));
     }
 
     @Test
     void datosInvalidosLanzanLaExcepcionConLosErrores() {
         Paciente p = paciente("123", "T1");
-        DatosInvalidosException e = assertThrows(DatosInvalidosException.class, () -> new PacientesServiceSimulado().crear(p));
+        DatosInvalidosException e = assertThrows(DatosInvalidosException.class, () -> new PacientesServiceSimulado().crear(ADMIN, p));
         assertEquals(1, e.getErrores().size());
     }
 
@@ -63,6 +64,15 @@ class PacientesServiceSimuladoTest {
     void fechaNacimientoFuturaEsInvalida() {
         Paciente p = paciente("12345678Z", "T1");
         p.setFechaNacimiento(LocalDate.now().plusDays(1));
-        assertThrows(DatosInvalidosException.class, () -> new PacientesServiceSimulado().crear(p));
+        assertThrows(DatosInvalidosException.class, () -> new PacientesServiceSimulado().crear(ADMIN, p));
+    }
+
+    @Test
+    void soloElPersonalAdministrativoPuedeDarDeAlta() {
+        for (Rol rol : Rol.values()) {
+            if (rol == Rol.PERSONAL_ADMINISTRATIVO) continue;
+            assertThrows(SinPermisoException.class,
+                    () -> new PacientesServiceSimulado().crear(new Usuario("x", rol), paciente("12345678Z", "T1")), rol.name());
+        }
     }
 }
