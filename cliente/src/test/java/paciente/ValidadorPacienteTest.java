@@ -58,6 +58,15 @@ class ValidadorPacienteTest {
     }
 
     @Test
+    void fechaNacimientoFuturaGeneraErrorYLaDeHoyEsValida() {
+        Paciente p = valido();
+        p.setFechaNacimiento(LocalDate.now().plusDays(1));
+        assertEquals(1, ValidadorPaciente.validar(p).size());
+        p.setFechaNacimiento(LocalDate.now());
+        assertTrue(ValidadorPaciente.validar(p).isEmpty());
+    }
+
+    @Test
     void emailInvalidoGeneraError() {
         Paciente p = valido();
         p.setEmail("sin-arroba");

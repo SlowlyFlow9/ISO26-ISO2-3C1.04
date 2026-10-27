@@ -94,7 +94,7 @@ public class PantallaAltaPaciente extends JFrame {
         }
         try {
             Paciente registrado = servicio.crear(p);
-            JOptionPane.showMessageDialog(this, "Paciente dado de alta con id " + registrado.getId());
+            JOptionPane.showMessageDialog(this, resumen(registrado), "Paciente dado de alta", JOptionPane.INFORMATION_MESSAGE);
             limpiar();
         } catch (DatosInvalidosException ex) {
             error(String.join("\n", ex.getErrores()));
@@ -102,6 +102,20 @@ public class PantallaAltaPaciente extends JFrame {
             error(ex.getMessage());
         }
     }
+
+    private static String resumen(Paciente p) {
+        return "Id: " + p.getId()
+                + "\nNombre: " + p.getNombre() + " " + p.getApellidos()
+                + "\nDNI/NIE: " + p.getDni()
+                + "\nFecha de nacimiento: " + p.getFechaNacimiento()
+                + "\nTeléfono: " + p.getTelefono()
+                + "\nEmail: " + valor(p.getEmail())
+                + "\nDirección: " + valor(p.getDireccion())
+                + "\nTarjeta sanitaria: " + valor(p.getNumeroTarjetaSanitaria())
+                + "\nFecha de alta: " + p.getFechaAlta();
+    }
+
+    private static String valor(String s) { return s == null || s.isBlank() ? "-" : s; }
 
     private void error(String mensaje) {
         JOptionPane.showMessageDialog(this, mensaje, "No se puede dar de alta", JOptionPane.ERROR_MESSAGE);

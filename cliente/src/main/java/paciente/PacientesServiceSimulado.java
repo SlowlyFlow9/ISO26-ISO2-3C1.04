@@ -12,8 +12,6 @@ public class PacientesServiceSimulado implements PacientesService {
     @Override
     public Paciente crear(Paciente datos) throws DatosInvalidosException, PacienteDuplicadoException {
         List<String> errores = ValidadorPaciente.validar(datos);
-        if (datos.getFechaNacimiento() != null && datos.getFechaNacimiento().isAfter(LocalDate.now()))
-            errores.add("La fecha de nacimiento no puede ser futura");
         if (!errores.isEmpty()) throw new DatosInvalidosException(errores);
 
         String dni = datos.getDni().trim();
