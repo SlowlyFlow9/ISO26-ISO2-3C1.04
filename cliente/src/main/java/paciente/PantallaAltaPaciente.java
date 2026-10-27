@@ -16,7 +16,7 @@ import javax.swing.SwingUtilities;
 
 /** CU22: formulario de alta de paciente. Solo valida formato (D-013); lo demás lo decide el servicio. */
 public class PantallaAltaPaciente extends JFrame {
-    private final PacienteServicio servicio;
+    private final PacientesService servicio;
     private final JTextField nombre = new JTextField(20);
     private final JTextField apellidos = new JTextField(20);
     private final JTextField dni = new JTextField(20);
@@ -28,7 +28,7 @@ public class PantallaAltaPaciente extends JFrame {
     private final JTextField direccion = new JTextField(20);
     private final JTextField tarjeta = new JTextField(20);
 
-    public PantallaAltaPaciente(PacienteServicio servicio) {
+    public PantallaAltaPaciente(PacientesService servicio) {
         super("Alta de paciente");
         this.servicio = servicio;
         JPanel formulario = new JPanel(new GridLayout(0, 2, 6, 6));
@@ -41,10 +41,10 @@ public class PantallaAltaPaciente extends JFrame {
         fecha.add(anio);
         formulario.add(new JLabel("Fecha de nacimiento *"));
         formulario.add(fecha);
-        campo(formulario, "Teléfono", telefono);
+        campo(formulario, "Teléfono *", telefono);
         campo(formulario, "Email", email);
         campo(formulario, "Dirección", direccion);
-        campo(formulario, "Tarjeta sanitaria *", tarjeta);
+        campo(formulario, "Tarjeta sanitaria", tarjeta);
         JButton alta = new JButton("Dar de alta");
         alta.addActionListener(e -> darDeAlta());
         formulario.add(new JLabel());
@@ -93,9 +93,11 @@ public class PantallaAltaPaciente extends JFrame {
             return;
         }
         try {
-            Paciente registrado = servicio.alta(p);
+            Paciente registrado = servicio.crear(p);
             JOptionPane.showMessageDialog(this, "Paciente dado de alta con id " + registrado.getId());
             limpiar();
+        } catch (DatosInvalidosException ex) {
+            error(String.join("\n", ex.getErrores()));
         } catch (PacienteDuplicadoException ex) {
             error(ex.getMessage());
         }
@@ -114,6 +116,6 @@ public class PantallaAltaPaciente extends JFrame {
 
     public static void main(String[] args) {
         // ponytail: servicio simulado, sustituir por la implementación real cuando exista el servidor (D-022)
-        SwingUtilities.invokeLater(() -> new PantallaAltaPaciente(new PacienteServicioSimulado()).setVisible(true));
+        SwingUtilities.invokeLater(() -> new PantallaAltaPaciente(new PacientesServiceSimulado()).setVisible(true));
     }
 }
