@@ -9,6 +9,9 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 
 class PacientesServiceImplTest {
+    private static final Usuario ADMIN = new Usuario("ana", Rol.PERSONAL_ADMINISTRATIVO);
+
+    private PacientesServiceImpl servicio() { return new PacientesServiceImpl(new PacientesRepositorioMemoria()); }
 
     private Paciente paciente(String dni, String tarjeta) {
         Paciente p = new Paciente();
@@ -28,36 +31,43 @@ class PacientesServiceImplTest {
         Paciente entrada = valido();
         entrada.setId(99L);
         entrada.setActivo(false);
-        Paciente r = new PacientesServiceImpl().crear(entrada);
+        Paciente r = servicio().crear(ADMIN, entrada);
         assertEquals(1L, r.getId());
         assertNotNull(r.getFechaAlta());
         assertTrue(r.isActivo());
     }
 
     @Test
+    void elPacienteCreadoQuedaDisponibleEnElRepositorio() throws Exception {
+        PacientesRepositorioMemoria repositorio = new PacientesRepositorioMemoria();
+        Paciente r = new PacientesServiceImpl(repositorio).crear(ADMIN, valido());
+        assertEquals("12345678Z", repositorio.buscarPorId(r.getId()).orElseThrow().getDni());
+    }
+
+    @Test
     void dniRepetidoSinDistinguirMayusculasNiEspacios() throws Exception {
-        PacientesServiceImpl s = new PacientesServiceImpl();
-        s.crear(paciente("X1234567L", "T1"));
-        assertThrows(PacienteDuplicadoException.class, () -> s.crear(paciente(" x1234567l ", "T2")));
+        PacientesServiceImpl s = servicio();
+        s.crear(ADMIN, paciente("X1234567L", "T1"));
+        assertThrows(PacienteDuplicadoException.class, () -> s.crear(ADMIN, paciente(" x1234567l ", "T2")));
     }
 
     @Test
     void tarjetaRepetidaLanzaDuplicado() throws Exception {
-        PacientesServiceImpl s = new PacientesServiceImpl();
-        s.crear(valido());
-        assertThrows(PacienteDuplicadoException.class, () -> s.crear(paciente("87654321X", "T1")));
+        PacientesServiceImpl s = servicio();
+        s.crear(ADMIN, valido());
+        assertThrows(PacienteDuplicadoException.class, () -> s.crear(ADMIN, paciente("87654321X", "T1")));
     }
 
     @Test
     void tarjetaOpcionalYVariasSinTarjetaNoSeConsideranDuplicadas() throws Exception {
-        PacientesServiceImpl s = new PacientesServiceImpl();
-        s.crear(paciente("12345678Z", null));
-        s.crear(paciente("87654321X", " "));
+        PacientesServiceImpl s = servicio();
+        s.crear(ADMIN, paciente("12345678Z", null));
+        s.crear(ADMIN, paciente("87654321X", " "));
     }
 
     @Test
     void camposObligatoriosVaciosDanUnErrorCadaUno() {
-        DatosInvalidosException e = assertThrows(DatosInvalidosException.class, () -> new PacientesServiceImpl().crear(new Paciente()));
+        DatosInvalidosException e = assertThrows(DatosInvalidosException.class, () -> servicio().crear(ADMIN, new Paciente()));
         assertEquals(5, e.getErrores().size());
     }
 
@@ -65,13 +75,13 @@ class PacientesServiceImplTest {
     void telefonoVacioEsInvalido() {
         Paciente p = valido();
         p.setTelefono(" ");
-        assertThrows(DatosInvalidosException.class, () -> new PacientesServiceImpl().crear(p));
+        assertThrows(DatosInvalidosException.class, () -> servicio().crear(ADMIN, p));
     }
 
     @Test
     void dniConFormatoInvalidoEsInvalido() {
         for (String dni : new String[] {"1234567Z", "123456789", "ABCDEFGHI", "X12345678"}) {
-            assertThrows(DatosInvalidosException.class, () -> new PacientesServiceImpl().crear(paciente(dni, "T1")), dni);
+            assertThrows(DatosInvalidosException.class, () -> servicio().crear(ADMIN, paciente(dni, "T1")), dni);
         }
     }
 
@@ -79,34 +89,48 @@ class PacientesServiceImplTest {
     void emailInvalidoEsInvalidoYVacioEsValido() throws Exception {
         Paciente malo = valido();
         malo.setEmail("sin-arroba");
-        assertThrows(DatosInvalidosException.class, () -> new PacientesServiceImpl().crear(malo));
+        assertThrows(DatosInvalidosException.class, () -> servicio().crear(ADMIN, malo));
         Paciente bueno = valido();
         bueno.setEmail("ana@correo.es");
-        new PacientesServiceImpl().crear(bueno);
+        servicio().crear(ADMIN, bueno);
         Paciente vacio = valido();
         vacio.setEmail("");
-        new PacientesServiceImpl().crear(vacio);
+        servicio().crear(ADMIN, vacio);
     }
 
     @Test
     void fechaNacimientoFuturaEsInvalida() {
         Paciente p = valido();
         p.setFechaNacimiento(LocalDate.now().plusDays(1));
-        assertThrows(DatosInvalidosException.class, () -> new PacientesServiceImpl().crear(p));
+        assertThrows(DatosInvalidosException.class, () -> servicio().crear(ADMIN, p));
     }
 
     @Test
     void fechaNacimientoDeHoyEsValida() throws Exception {
         Paciente p = valido();
         p.setFechaNacimiento(LocalDate.now());
-        new PacientesServiceImpl().crear(p);
+        servicio().crear(ADMIN, p);
+    }
+
+    @Test
+    void soloElPersonalAdministrativoPuedeDarDeAlta() {
+        for (Rol rol : Rol.values()) {
+            if (rol == Rol.PERSONAL_ADMINISTRATIVO) continue;
+            assertThrows(SinPermisoException.class, () -> servicio().crear(new Usuario("x", rol), valido()), rol.name());
+        }
+        assertThrows(SinPermisoException.class, () -> servicio().crear(null, valido()));
+    }
+
+    @Test
+    void sinPermisoSeRechazaAntesQueLosDatosInvalidos() {
+        assertThrows(SinPermisoException.class, () -> servicio().crear(new Usuario("x", Rol.MEDICO), new Paciente()));
     }
 
     @Test
     void altaFallidaNoConsumeId() throws Exception {
-        PacientesServiceImpl s = new PacientesServiceImpl();
-        s.crear(valido());
-        assertThrows(PacienteDuplicadoException.class, () -> s.crear(paciente("12345678Z", "T9")));
-        assertEquals(2L, s.crear(paciente("87654321X", "T2")).getId());
+        PacientesServiceImpl s = servicio();
+        s.crear(ADMIN, valido());
+        assertThrows(PacienteDuplicadoException.class, () -> s.crear(ADMIN, paciente("12345678Z", "T9")));
+        assertEquals(2L, s.crear(ADMIN, paciente("87654321X", "T2")).getId());
     }
 }

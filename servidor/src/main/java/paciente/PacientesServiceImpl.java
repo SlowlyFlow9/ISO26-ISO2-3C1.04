@@ -10,25 +10,25 @@ public class PacientesServiceImpl implements PacientesService {
     private static final Pattern DNI_NIE = Pattern.compile("[0-9]{8}[A-Za-z]|[XYZxyz][0-9]{7}[A-Za-z]");
     private static final Pattern EMAIL = Pattern.compile("[^@\\s]+@[^@\\s]+\\.[^@\\s]+");
 
-    // ponytail: almacenamiento en memoria, sustituir por persistencia cuando se decida (no hay decisión aún)
-    private final List<Paciente> pacientes = new ArrayList<>();
-    private long siguienteId = 1;
+    private final PacientesRepositorio repositorio;
+
+    public PacientesServiceImpl(PacientesRepositorio repositorio) { this.repositorio = repositorio; }
 
     @Override
-    public synchronized Paciente crear(Paciente datos) throws DatosInvalidosException, PacienteDuplicadoException {
+    public synchronized Paciente crear(Usuario solicitante, Paciente datos)
+            throws SinPermisoException, DatosInvalidosException, PacienteDuplicadoException {
+        ControlAcceso.exigir(solicitante, Rol.PERSONAL_ADMINISTRATIVO);
         List<String> errores = validar(datos);
         if (!errores.isEmpty()) throw new DatosInvalidosException(errores);
 
         String dni = datos.getDni().trim();
         String tarjeta = vacio(datos.getNumeroTarjetaSanitaria()) ? null : datos.getNumeroTarjetaSanitaria().trim();
-        for (Paciente existente : pacientes) {
-            if (existente.getDni().equalsIgnoreCase(dni))
-                throw new PacienteDuplicadoException("Ya existe un paciente con el DNI " + dni);
-            if (tarjeta != null && tarjeta.equalsIgnoreCase(existente.getNumeroTarjetaSanitaria()))
-                throw new PacienteDuplicadoException("Ya existe un paciente con la tarjeta sanitaria " + tarjeta);
-        }
+        if (repositorio.buscarPorDni(dni).isPresent())
+            throw new PacienteDuplicadoException("Ya existe un paciente con el DNI " + dni);
+        if (tarjeta != null && repositorio.buscarPorTarjeta(tarjeta).isPresent())
+            throw new PacienteDuplicadoException("Ya existe un paciente con la tarjeta sanitaria " + tarjeta);
+
         Paciente creado = new Paciente();
-        creado.setId(siguienteId++);
         creado.setNombre(datos.getNombre().trim());
         creado.setApellidos(datos.getApellidos().trim());
         creado.setDni(dni);
@@ -39,8 +39,7 @@ public class PacientesServiceImpl implements PacientesService {
         creado.setNumeroTarjetaSanitaria(tarjeta);
         creado.setFechaAlta(LocalDate.now());
         creado.setActivo(true);
-        pacientes.add(creado);
-        return creado;
+        return repositorio.guardar(creado);
     }
 
     private static List<String> validar(Paciente p) {
