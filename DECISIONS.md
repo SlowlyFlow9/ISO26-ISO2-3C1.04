@@ -123,3 +123,42 @@ Consecuencias: el estado inicial de la solicitud y los campos definitivos se cie
 Fecha: 22/10 · It. 0 · Acta: 22/10
 Contexto: al tener muchos requisitos , a la hora de planificar no podriamos hacer una iteracion por caso de uso por tema de tiempo.
 Decision: agrupar varios casos de uso en una iteración.
+
+## D-020 · Swing como tecnología de la interfaz del cliente de escritorio
+Fecha: 27/10 · It. 1 · Acta: pendiente · Issue: #20, #37
+Contexto: el enunciado fija Java pero no la biblioteca gráfica, y el cliente de escritorio necesita una para sus pantallas (CU22 y siguientes).
+Decisión: la interfaz del cliente de escritorio se hace con Swing. (propuesta)
+Alternativas: JavaFX; interfaz de consola.
+Motivo: viene incluida en el JDK, no añade dependencias al pom y es multiplataforma (Windows, Linux, Mac).
+Consecuencias: el cliente de escritorio no sirve para móvil ni web; esos clientes serán aplicaciones aparte contra el mismo servidor, lo que obliga a que la lógica no dependa de Swing (la validación y el contrato PacientesService no lo usan).
+
+## D-021 · Campos obligatorios y validaciones del alta de paciente
+Fecha: 27/10 · It. 1 · Acta: pendiente · Issue: #20, #36, #37
+Contexto: D-005 define los atributos de Paciente pero no cuáles son obligatorios ni qué se valida, y D-013 reparte la validación entre cliente y servidor.
+Decisión: son obligatorios nombre, apellidos, dni, fechaNacimiento y telefono; email, direccion y numeroTarjetaSanitaria son opcionales, y la tarjeta es única cuando se informa. El DNI/NIE debe tener formato válido (se comprueba el formato, no la letra de control), el email debe ser válido si se informa y la fecha de nacimiento no puede ser futura. id, fechaAlta y activo los asigna el servidor. (propuesta)
+Motivo: los obligatorios son los de la issue #20; la tarjeta puede no estar disponible en el alta y la unicidad se exige solo cuando existe.
+Consecuencias: cliente y servidor aplican las mismas reglas; el cliente impide el envío y el servidor lanza DatosInvalidosException aunque se le llame directamente.
+
+## D-022 · Protocolo de comunicación entre cliente y servidor
+Fecha: 27/10 · It. 1 · Acta: pendiente · Issue: #20, #36, #37
+Contexto: el enunciado pide una arquitectura cliente-servidor con clientes de escritorio, móvil y web, pero no fija cómo se comunican.
+Decisión: HTTP con JSON. El servidor expone POST /pacientes y responde 201 (paciente creado), 400 (datos inválidos, con la lista de errores), 403 (sin permiso) o 409 (duplicado). El usuario viaja en las cabeceras X-Usuario y X-Rol (D-023). Se usan HttpServer y HttpClient del JDK y Gson para el JSON. (propuesta)
+Alternativas: sockets propios; RMI.
+Motivo: HTTP es independiente del lenguaje y válido para clientes móviles y web; no necesita un framework.
+Consecuencias: Gson es una dependencia nueva, fijada en el pom padre. Cliente y servidor comparten el formato de mensajes pero no código, así que Paciente sigue duplicado en cada módulo. El servidor solo escucha en localhost hasta que exista autenticación real.
+
+## D-023 · Identificación del usuario y comprobación de rol
+Fecha: 27/10 · It. 1 · Acta: pendiente · Issue: #20, #36, #37
+Contexto: D-016 pide comprobar el rol de forma sencilla hasta la It. 12, y el alta de pacientes solo la puede hacer el Personal administrativo. Hace falta decidir cómo sabe el servicio quién llama.
+Decisión: cada operación del servicio recibe como primer parámetro el usuario solicitante (con su rol: paciente, médico, personal administrativo o administrador). La comprobación está en un único punto del servidor, que lanza SinPermisoException si el rol no basta. El cliente conoce el usuario actual y no muestra las pantallas que su rol no permite. No hay autenticación real hasta la integración con SSO. (propuesta)
+Alternativas: sesión o token de acceso desde ya; integrar el SSO ahora.
+Motivo: es lo más simple que cumple D-016 y el SSO queda para su iteración.
+Consecuencias: el contrato de PacientesService cambia a crear(solicitante, datos) y se añade SinPermisoException. Sin autenticación real, un cliente puede declarar el rol que quiera; es una limitación aceptada hasta sustituirla por permisos y SSO en la It. 12. El mismo patrón sirve para CU23, CU24 y los demás servicios.
+
+## D-024 · Almacenamiento de los pacientes
+Fecha: 27/10 · It. 1 · Acta: pendiente · Issue: #20, #36
+Contexto: el alta debe dejar al paciente disponible para CU23 y CU24, y hoy se guarda solo en memoria dentro del servicio.
+Decisión: el servicio guarda los pacientes a través de una interfaz de repositorio (PacientesRepositorio), con una implementación en memoria por ahora. La base de datos o el fichero concretos se deciden cuando se integre el servidor. (propuesta)
+Alternativas: base de datos embebida con JDBC desde ya; ficheros JSON.
+Motivo: separa la lógica de negocio del almacenamiento (programación orientada a interfaces, como pide el enunciado) y evita una dependencia que aún no es necesaria.
+Consecuencias: los datos se pierden al reiniciar el servidor. CU23 y CU24 usan el mismo repositorio. Cambiar de almacenamiento solo requiere otra implementación de la interfaz.
