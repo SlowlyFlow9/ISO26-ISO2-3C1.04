@@ -3,6 +3,7 @@
 Fecha: 15/10 · It. 0 · Acta: 15/10
 Contexto: detectamos que los requisitos que utilizaban la palabra gestión quedaba muy ambigua.
 Decisión: dividir dichos requisitos en 4 casos de uso (consultar, modificar, eliminar, añadir).
+Consecuencias: sustituida por D-004, que los vuelve a unificar en uno solo.
 
 ## D-002 · Notificaciones de las citas
 Fecha: 15/10 · It. 0 · Acta: 15/10
@@ -27,7 +28,7 @@ Contexto: al tener 64 requisitos, esto nos impedía hacer una planificación que
 Decisión: unificar los requisitos que dividimos de gestión en solo uno, es decir, aquellos que dividimos en 4 ahora pasan a ser solo 1.
 Consecuencias: cambiar de nuevo los requisitos de la wiki y el diagrama de casos de uso del cliente.
 
-## D-004 · Casos de uso planificación
+## D-019 · Casos de uso planificación
 Fecha: 22/10 · It. 0 · Acta: 22/10
 Contexto: al tener muchos requisitos , a la hora de planificar no podriamos hacer una iteracion por caso de uso por tema de tiempo.
 Decision: agrupar varios casos de uso en una iteración.
