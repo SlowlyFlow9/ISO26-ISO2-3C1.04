@@ -57,3 +57,15 @@ Contexto: Baja lógica en lugar de borrado físico, para no romper el historial 
 ## D-009· Nombre de tipo unico
 Fecha: 26/10 · It. 1 · Issue: 19
 Contexto: El nombre del tipo es único. *(propuesta)*
+
+## D-011 · Relación entre protocolo y tipo de prueba
+Fecha: 26/10 · It. 2 · Acta: 22/10 · Issue: #25
+Contexto: CU33 crea la entidad TipoPrueba y CU34 gestiona los protocolos de pruebas.
+Decisión: cada ProtocoloPrueba estará asociado a un TipoPrueba existente. *(propuesta)*
+Consecuencias: no se podrá crear un protocolo para un tipo de prueba inexistente y se reutilizará la información definida en CU33.
+
+## D-012 · Separación de información entre tipo de prueba y protocolo
+Fecha: 26/10 · It. 2 · Acta: 22/10 · Issue: #25
+Contexto: TipoPrueba ya contiene los datos generales definidos en CU33 y CU34 introduce la entidad ProtocoloPrueba.
+Decisión: los datos generales de la prueba permanecen en TipoPrueba y ProtocoloPrueba contiene la información específica de realización, como instrucciones de realización, uso de contraste, consentimiento informado y requisitos de seguridad. *(propuesta)*
+Consecuencias: se evita duplicar información y CU34 depende de la entidad TipoPrueba creada en CU33.
