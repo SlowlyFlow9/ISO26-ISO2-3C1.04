@@ -10,6 +10,7 @@ public final class ValidadorPaciente {
     // ponytail: solo se comprueba el formato del DNI/NIE, no la letra de control
     private static final Pattern DNI_NIE = Pattern.compile("[0-9]{8}[A-Za-z]|[XYZxyz][0-9]{7}[A-Za-z]");
     private static final Pattern EMAIL = Pattern.compile("[^@\\s]+@[^@\\s]+\\.[^@\\s]+");
+    private static final Pattern TELEFONO = Pattern.compile("\\+?[0-9 ]{9,15}");
 
     private ValidadorPaciente() { }
 
@@ -23,6 +24,7 @@ public final class ValidadorPaciente {
         if (p.getFechaNacimiento() == null) errores.add("La fecha de nacimiento es obligatoria");
         else if (p.getFechaNacimiento().isAfter(LocalDate.now())) errores.add("La fecha de nacimiento no puede ser futura");
         if (vacio(p.getTelefono())) errores.add("El teléfono es obligatorio");
+        else if (!TELEFONO.matcher(p.getTelefono().trim()).matches()) errores.add("El teléfono no tiene un formato válido");
         if (!vacio(p.getEmail()) && !EMAIL.matcher(p.getEmail().trim()).matches()) errores.add("El email no es válido");
         return errores;
     }

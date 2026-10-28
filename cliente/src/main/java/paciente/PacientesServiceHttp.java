@@ -1,14 +1,5 @@
 package paciente;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializer;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -18,6 +9,15 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializer;
 
 /** Cliente HTTP del servidor (D-022): POST /pacientes con el usuario en las cabeceras X-Usuario y X-Rol (D-023). */
 public class PacientesServiceHttp implements PacientesService {
@@ -64,6 +64,22 @@ public class PacientesServiceHttp implements PacientesService {
             if (e instanceof ServicioNoDisponibleException) throw e;
             throw new ServicioNoDisponibleException("Respuesta del servidor no válida", e);
         }
+    }
+
+    // ponytail: pendiente de conectar con las rutas del servidor para el CU23
+    @Override
+    public List<Paciente> buscar(Usuario solicitante, String criterio) {
+        throw new ServicioNoDisponibleException("La búsqueda todavía no está conectada al servidor");
+    }
+
+    @Override
+    public Paciente consultar(Usuario solicitante, long id) {
+        throw new ServicioNoDisponibleException("La consulta todavía no está conectada al servidor");
+    }
+
+    @Override
+    public Paciente modificar(Usuario solicitante, long id, Paciente datos) {
+        throw new ServicioNoDisponibleException("La modificación todavía no está conectada al servidor");
     }
 
     private static String mensaje(String cuerpo) {
