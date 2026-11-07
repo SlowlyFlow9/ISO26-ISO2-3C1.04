@@ -1,7 +1,7 @@
 package imagen;
 
 import java.util.List;
-import informe.Usuario; // Reutilizamos tu clase Usuario del caso de uso anterior
+import informe.Usuario;
 
 public class ImagenesService {
     private final ImagenesRepositorio repositorio;
@@ -21,5 +21,22 @@ public class ImagenesService {
         }
 
         return repositorio.obtenerPorPrueba(idPrueba);
+    }
+
+    public void crearImagen(Usuario solicitante, ImagenPrueba imagen) {
+        // Validación de permisos estricta
+        if (!"Médico".equals(solicitante.getRol())) {
+            throw new RuntimeException("Solo los médicos pueden crear imágenes");
+        }
+        
+        if (imagen.getIdPrueba() == null || imagen.getIdPrueba().trim().isEmpty()) {
+            throw new IllegalArgumentException("La imagen debe estar asociada a una prueba");
+        }
+
+        if (imagen.getRuta() == null || imagen.getRuta().trim().isEmpty()) {
+            throw new IllegalArgumentException("La ruta de la imagen no puede estar vacía");
+        }
+
+        repositorio.guardar(imagen);
     }
 }
