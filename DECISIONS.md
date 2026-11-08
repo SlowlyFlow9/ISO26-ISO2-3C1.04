@@ -162,3 +162,11 @@ Decisión: el servicio guarda los pacientes a través de una interfaz de reposit
 Alternativas: base de datos embebida con JDBC desde ya; ficheros JSON.
 Motivo: separa la lógica de negocio del almacenamiento (programación orientada a interfaces, como pide el enunciado) y evita una dependencia que aún no es necesaria.
 Consecuencias: los datos se pierden al reiniciar el servidor. CU23 y CU24 usan el mismo repositorio. Cambiar de almacenamiento solo requiere otra implementación de la interfaz.
+
+## D-025 · Características de calidad ISO 25010 de la planificación
+Fecha: 29/10 · It. 0 · Acta: pendiente
+Contexto: la planificación debe incluir tres características del modelo de calidad del producto de ISO 25010.
+Decisión: incluir Adecuación funcional, Seguridad y Fiabilidad. Adecuación funcional se comprueba en todas las iteraciones; además cada iteración tiene una característica de foco (columna Calidad de la planificación) y la evaluación final se hace en una iteración ItQ siguiendo los cinco pasos de ISO 25040. (propuesta)
+Alternativas: Capacidad de uso; Compatibilidad (interoperabilidad); Eficacia de desempeño, Mantenibilidad y Portabilidad.
+Motivo: Adecuación funcional, porque trabajamos por casos de uso y esta característica comprueba que cada CU cubre su RF y lo hace correctamente (completitud y corrección funcional). Seguridad, porque se manejan datos de pacientes, informes e imágenes clínicas y hay requisitos que son justo sus subcaracterísticas: roles y permisos (RF38, RF39), auditoría de actividades y accesos a datos clínicos (RF40, RF41) y validación de identidad con SSO (RF45). Fiabilidad, porque el sistema gestiona agendas y citas (RF14, RF25, RF26), intercambia información con sistemas externos (RF46, RF48) y ejecuta procesos automáticos con el temporizador (RF49, RF50), y un fallo afecta directamente a la atención al paciente (disponibilidad, tolerancia a fallos y capacidad de recuperación).
+Consecuencias: la planificación añade la columna Calidad, un plan de calidad, las iteraciones It13 (integraciones externas) e It14 (procesos automáticos) para RF45 a RF50, y la iteración ItQ de evaluación; el total pasa a 511 horas, 34 días y 15.775 €. Al terminar el proyecto hay que medir estas tres características en el producto entregado.
