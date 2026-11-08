@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
  */
 public class SolicitudesRepoTest {
 
-    //Creamos una solicitud para usar en las pruebas
+    // Crea una solicitud para utilizar en las pruebas
     private SolicitudPrueba crearSolicitud() {
         return new SolicitudPrueba(
             0,
@@ -21,11 +21,10 @@ public class SolicitudesRepoTest {
             "Necesita una resonancia",
             Prioridad.PREFERENTE,
             LocalDateTime.now(),
-            "SOLO_TEST"
+            EstadoSolicitud.PENDIENTE_CITACION
         );
     }
 
-    //Comprueba que se guarda una solicitud
     @Test
     public void guardarSolicitud() {
         SolicitudesRepositorioMemoria repo =
@@ -37,9 +36,10 @@ public class SolicitudesRepoTest {
         assertEquals(1, guardada.getId());
         assertEquals("Dolor de rodilla",
                 guardada.getIndicacionClinica());
+        assertEquals(EstadoSolicitud.PENDIENTE_CITACION,
+                guardada.getEstado());
     }
 
-    // Comprueba que los identificadores son distintos.
     @Test
     public void asignarIdentificadores() {
         SolicitudesRepositorioMemoria repo =
@@ -55,7 +55,6 @@ public class SolicitudesRepoTest {
         assertEquals(2, segunda.getId());
     }
 
-    //Comprueba que encuentra una solicitud guardada
     @Test
     public void buscarSolicitud() {
         SolicitudesRepositorioMemoria repo =
@@ -68,7 +67,6 @@ public class SolicitudesRepoTest {
                 guardada.getId()).isPresent());
     }
 
-    //Comprueba que una solicitud inexistente no aparece
     @Test
     public void buscarInexistente() {
         SolicitudesRepositorioMemoria repo =
@@ -77,7 +75,6 @@ public class SolicitudesRepoTest {
         assertTrue(repo.buscarPorId(99).isEmpty());
     }
 
-    //Comprueba que no permite guardar una solicitud nula
     @Test
     public void guardarNula() {
         SolicitudesRepositorioMemoria repo =

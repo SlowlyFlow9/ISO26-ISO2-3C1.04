@@ -1,14 +1,15 @@
-
 package solicitud;
 
 import java.time.LocalDateTime;
 
 /**
- * Representa una solicitud de prueba diagnóstica.
- * CU11 - Prescribir pruebas diagnósticas. Compartida con CU12 y CU13.
+ * Representa una solicitud de prueba diagnostica.
+ * CU11 - Prescribir pruebas diagnosticas.
+ * Compartida con CU12 y CU13.
  */
 public class SolicitudPrueba {
 
+    //Atributos de la solicitud
     private final long id;
     private final long pacienteId;
     private final long medicoId;
@@ -19,13 +20,14 @@ public class SolicitudPrueba {
     private final Prioridad prioridad;
 
     private final LocalDateTime fechaSolicitud;
-    private final String estado;
+    private final EstadoSolicitud estado;
 
+    //Constructor
     public SolicitudPrueba(long id, long pacienteId,
             long medicoId, long tipoPruebaId,
             String indicacionClinica, String justificacion,
             Prioridad prioridad, LocalDateTime fechaSolicitud,
-            String estado) {
+            EstadoSolicitud estado) {
 
         this.id = id;
         this.pacienteId = pacienteId;
@@ -37,6 +39,7 @@ public class SolicitudPrueba {
         this.fechaSolicitud = fechaSolicitud;
         this.estado = estado;
     }
+
 
     public long getId() {
         return id;
@@ -70,11 +73,11 @@ public class SolicitudPrueba {
         return fechaSolicitud;
     }
 
-    public String getEstado() {
+    public EstadoSolicitud getEstado() {
         return estado;
     }
 
-     //Devuelve una nueva solicitud con otro identificador, conservando el resto de sus datos.
+     //Devuelve una copia de la solicitud con otro id 
     public SolicitudPrueba conId(long nuevoId) {
         return new SolicitudPrueba(
             nuevoId,
@@ -88,5 +91,4 @@ public class SolicitudPrueba {
             estado
         );
     }
-
 }
