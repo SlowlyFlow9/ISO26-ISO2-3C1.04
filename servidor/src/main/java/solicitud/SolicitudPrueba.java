@@ -40,7 +40,6 @@ public class SolicitudPrueba {
         this.estado = estado;
     }
 
-
     public long getId() {
         return id;
     }
@@ -77,7 +76,7 @@ public class SolicitudPrueba {
         return estado;
     }
 
-     //Devuelve una copia de la solicitud con otro id 
+    //Devuelve una copia de la solicitud con otro id
     public SolicitudPrueba conId(long nuevoId) {
         return new SolicitudPrueba(
             nuevoId,
