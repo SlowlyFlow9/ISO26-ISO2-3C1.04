@@ -195,8 +195,7 @@ public class SolicitudesServidorHttp {
                 error("NO_ENCONTRADO"));
     }
 
-   
-     //Recupera el usuario provisional de las cabeceras HTTP
+    //Recupera el usuario provisional de las cabeceras HTTP. Devuelve null si no hay usuario o rol
     private static Usuario usuario(
             HttpExchange exchange) {
 
