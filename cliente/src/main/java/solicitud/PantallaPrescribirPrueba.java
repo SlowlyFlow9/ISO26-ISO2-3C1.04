@@ -379,7 +379,6 @@ private void error(String mensaje) {
             JOptionPane.ERROR_MESSAGE);
 }
 
-
     //Sólo los medicos pueden utilizar esta pantalla.
     public static boolean disponiblePara(Usuario usuario) {
 
