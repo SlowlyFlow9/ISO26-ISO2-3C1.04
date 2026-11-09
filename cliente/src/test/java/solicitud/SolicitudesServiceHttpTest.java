@@ -21,7 +21,8 @@ import paciente.ServicioNoDisponibleException;
 import tipoprueba.TipoPrueba;
 
 /**
- * Pruebas del cliente HTTP de CU11
+ * Pruebas del cliente HTTP de CU11.
+ * Prescribir pruebas diagnosticas.
  */
 public class SolicitudesServiceHttpTest {
 
@@ -37,7 +38,7 @@ public class SolicitudesServiceHttpTest {
     private volatile String usuarioRecibido;
     private volatile String cuerpoRecibido;
 
-    //Preparamos un servidor HTTP de prueba
+    // Preparamos un servidor HTTP de prueba.
     @BeforeEach
     public void preparar() throws IOException {
 
@@ -91,7 +92,7 @@ public class SolicitudesServiceHttpTest {
         medico = new Usuario("Medico de prueba", Rol.MEDICO);
     }
 
-    //Apagamos el servidor al terminar cada prueba
+    //Apagamos el servidor despues de cada prueba.
     @AfterEach
     public void terminar() {
 
@@ -100,7 +101,7 @@ public class SolicitudesServiceHttpTest {
         }
     }
 
-    //Solicitud de ejemplo
+    //Creamos una solicitud de ejemplo.
     private SolicitudPrueba crearDatos() {
 
         return new SolicitudPrueba(
@@ -116,7 +117,7 @@ public class SolicitudesServiceHttpTest {
         );
     }
 
-    //JSON que devolvería el servidor
+    //JSON que devolvería el servidor.
     private String solicitudRegistrada() {
 
         return "{"
@@ -132,6 +133,7 @@ public class SolicitudesServiceHttpTest {
                 + "}";
     }
 
+    //Prueba 1: consultar los tipos de prueba disponibles.
     @Test
     public void consultarTiposDisponibles() {
 
@@ -149,7 +151,9 @@ public class SolicitudesServiceHttpTest {
                 servicio.consultarTiposPrueba(medico);
 
         assertEquals(1, tipos.size());
-        assertEquals("Radiografia",
+
+        assertEquals(
+                "Radiografia",
                 tipos.get(0).getNombre());
 
         assertEquals("/solicitudes/tipos", rutaRecibida);
@@ -157,6 +161,7 @@ public class SolicitudesServiceHttpTest {
         assertEquals("MEDICO", rolRecibido);
     }
 
+    //Prueba 2: registrar correctamente una solicitud
     @Test
     public void registrarSolicitudCorrectamente() {
 
@@ -184,13 +189,16 @@ public class SolicitudesServiceHttpTest {
         assertEquals("/solicitudes", rutaRecibida);
         assertEquals("POST", metodoRecibido);
         assertEquals("MEDICO", rolRecibido);
-        assertEquals("Medico de prueba", usuarioRecibido);
+
+        assertEquals(
+                "Medico de prueba", usuarioRecibido);
 
         assertTrue(
                 cuerpoRecibido.contains(
                         "\"pacienteId\":1"));
     }
 
+    //Prueba 3: consultar una solicitud por su identificador.
     @Test
     public void consultarSolicitudPorId() {
 
@@ -204,42 +212,55 @@ public class SolicitudesServiceHttpTest {
         assertEquals("GET", metodoRecibido);
     }
 
+    //Prueba 4: comprobar el mensaje de datos invalidos.
     @Test
     public void rechazarDatosInvalidos() {
 
         codigoRespuesta = 400;
         respuesta = "{\"error\":\"DATOS_INVALIDOS\"}";
 
-        assertThrows(
+        IllegalArgumentException error = assertThrows(
                 IllegalArgumentException.class,
                 () -> servicio.crearSolicitud(
                         medico, crearDatos()));
+
+        assertTrue(error.getMessage().contains(
+                "Los datos de la solicitud no son validos"));
     }
 
+    //Prueba 5: comprobar el mensaje de falta de permisos.
     @Test
     public void rechazarUsuarioSinPermiso() {
 
         codigoRespuesta = 403;
         respuesta = "{\"error\":\"SIN_PERMISO\"}";
 
-        assertThrows(
+        SecurityException error = assertThrows(
                 SecurityException.class,
                 () -> servicio.crearSolicitud(
                         medico, crearDatos()));
+
+        assertTrue(error.getMessage().contains(
+                "No tienes permiso"));
     }
 
+    //Prueba 6: comprobar el mensaje de solicitud inexistente.
     @Test
     public void solicitudNoEncontrada() {
 
         codigoRespuesta = 404;
         respuesta = "{\"error\":\"NO_ENCONTRADO\"}";
 
-        assertThrows(
+        NoSuchElementException error = assertThrows(
                 NoSuchElementException.class,
                 () -> servicio.consultarSolicitud(
                         medico, 999));
+
+        assertTrue(error.getMessage().contains(
+                "No se ha encontrado"));
     }
 
+    //Prueba 7: comprobar los errores internos del servidor
     @Test
     public void controlarErrorDelServidor() {
 

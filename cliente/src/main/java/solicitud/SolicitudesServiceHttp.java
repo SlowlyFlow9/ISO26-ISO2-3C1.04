@@ -98,53 +98,44 @@ public class SolicitudesServiceHttp implements SolicitudesService {
         }
     }
 
-    //Comprueba el codigo HTTP recibido
-    private void comprobarRespuesta(
-            HttpResponse<String> respuesta,
-            int codigoEsperado) {
+//Comprueba el codigo HTTP recibido y lanza excepciones si no es el esperado
+private void comprobarRespuesta(
+        HttpResponse<String> respuesta,
+        int codigoEsperado) {
 
-        int codigo = respuesta.statusCode();
+    int codigo = respuesta.statusCode();
 
-        if (codigo == codigoEsperado) {
-            return;
-        }
-
-        String detalle = "";
-
-        try {
-            var json = JsonParser.parseString(
-                    respuesta.body()).getAsJsonObject();
-
-            if (json.has("error")) {
-                detalle = ": " +
-                        json.get("error").getAsString();
-            }
-
-        } catch (RuntimeException e) {
-            // Si la respuesta no contiene JSON valido,
-            // mantenemos el codigo HTTP para informar del error.
-        }
-
-        switch (codigo) {
-
-            case 400:
-                throw new IllegalArgumentException(
-                    "Datos invalidos" + detalle);
-
-            case 403:
-                throw new SecurityException(
-                    "No tienes permiso" + detalle);
-
-            case 404:
-                throw new NoSuchElementException(
-                    "No encontrado" + detalle);
-
-            default:
-                throw new ServicioNoDisponibleException(
-                    "Error del servidor HTTP " + codigo
-                    + detalle);
-        }
+    if (codigo == codigoEsperado) {
+        return;
     }
+
+    switch (codigo) {
+
+        case 400:
+            throw new IllegalArgumentException(
+                "Los datos de la solicitud no son validos. "
+                + "Comprueba los campos obligatorios.");
+
+        case 403:
+            throw new SecurityException(
+                "No tienes permiso para realizar esta operacion.");
+
+        case 404:
+            throw new NoSuchElementException(
+                "No se ha encontrado el paciente, "
+                + "el tipo de prueba o la solicitud.");
+
+        case 409:
+            throw new IllegalStateException(
+                "No se puede registrar la solicitud "
+                + "porque existe un conflicto de datos.");
+
+        default:
+            throw new ServicioNoDisponibleException(
+                "No se pudo completar la operacion. "
+                + "Error HTTP: " + codigo);
+    }
+}
 
     //Consulta los tipos de prueba activos
     @Override
