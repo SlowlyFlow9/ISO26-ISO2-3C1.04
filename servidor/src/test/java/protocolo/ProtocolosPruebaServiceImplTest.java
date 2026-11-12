@@ -2,6 +2,8 @@ package protocolo;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import paciente.Rol;
@@ -13,14 +15,17 @@ class ProtocolosPruebaServiceImplTest {
     private static final Usuario ADMIN =
             new Usuario("admin", Rol.ADMINISTRADOR);
 
-    private ProtocolosPruebaServiceImpl servicio() {
+    private ProtocolosPruebaServiceImpl servicio;
+
+    @BeforeEach
+    void setUp() {
         ProtocolosPruebaRepositorio repositorio =
                 new ProtocolosPruebaRepositorioMemoria();
 
         TiposPruebaConsulta tiposPrueba =
                 id -> id == 1L || id == 2L;
 
-        return new ProtocolosPruebaServiceImpl(
+        servicio = new ProtocolosPruebaServiceImpl(
                 repositorio, tiposPrueba);
     }
 
@@ -39,102 +44,225 @@ class ProtocolosPruebaServiceImplTest {
     }
 
     @Test
+    @DisplayName("Crear un protocolo válido lo deja activo y con identificador")
     void crearProtocoloCorrectamente() throws Exception {
-        ProtocoloPrueba creado =
-                servicio().crear(ADMIN, valido());
 
-        assertNotNull(creado.getId());
-        assertTrue(creado.isActivo());
-        assertEquals("Protocolo TAC", creado.getNombre());
-        assertEquals(1L, creado.getTipoPruebaId());
+        // Preparar
+        ProtocoloPrueba datos = valido();
+
+        // Ejecutar
+        ProtocoloPrueba creado =
+                servicio.crear(ADMIN, datos);
+
+        // Comprobar
+        assertAll(
+                () -> assertNotNull(creado.getId()),
+                () -> assertTrue(creado.isActivo()),
+                () -> assertEquals(
+                        "Protocolo TAC",
+                        creado.getNombre()),
+                () -> assertEquals(
+                        1L,
+                        creado.getTipoPruebaId())
+        );
     }
 
     @Test
+    @DisplayName("No se puede crear un protocolo con un tipo de prueba inexistente")
     void noPermiteTipoPruebaInexistente() {
-        ProtocoloPrueba p = valido();
-        p.setTipoPruebaId(99L);
 
+        // Preparar
+        ProtocoloPrueba datos = valido();
+        datos.setTipoPruebaId(99L);
+
+        // Ejecutar y comprobar
         assertThrows(
                 TipoPruebaNoEncontradoException.class,
-                () -> servicio().crear(ADMIN, p));
+                () -> servicio.crear(ADMIN, datos));
     }
 
     @Test
-    void noPermiteCamposObligatoriosVacios() {
-        ProtocoloPrueba p = valido();
-        p.setNombre(" ");
+    @DisplayName("No se puede crear un protocolo con el nombre vacío")
+    void noPermiteNombreVacio() {
 
+        // Preparar
+        ProtocoloPrueba datos = valido();
+        datos.setNombre("");
+
+        // Ejecutar y comprobar
         assertThrows(
                 DatosProtocoloInvalidosException.class,
-                () -> servicio().crear(ADMIN, p));
+                () -> servicio.crear(ADMIN, datos));
     }
 
     @Test
+    @DisplayName("No se puede crear un protocolo con el nombre formado solo por espacios")
+    void noPermiteNombreSoloEspacios() {
+
+        // Preparar
+        ProtocoloPrueba datos = valido();
+        datos.setNombre("   ");
+
+        // Ejecutar y comprobar
+        assertThrows(
+                DatosProtocoloInvalidosException.class,
+                () -> servicio.crear(ADMIN, datos));
+    }
+
+    @Test
+    @DisplayName("No se puede crear un protocolo sin tipo de prueba")
+    void noPermiteTipoPruebaNulo() {
+
+        // Preparar
+        ProtocoloPrueba datos = valido();
+        datos.setTipoPruebaId(null);
+
+        // Ejecutar y comprobar
+        assertThrows(
+                DatosProtocoloInvalidosException.class,
+                () -> servicio.crear(ADMIN, datos));
+    }
+
+    @Test
+    @DisplayName("Consultar un protocolo existente devuelve sus datos")
     void consultarDevuelveProtocoloCreado() throws Exception {
-        ProtocolosPruebaServiceImpl s = servicio();
 
-        ProtocoloPrueba creado = s.crear(ADMIN, valido());
+        // Preparar
+        ProtocoloPrueba creado =
+                servicio.crear(ADMIN, valido());
 
+        // Ejecutar
         ProtocoloPrueba consultado =
-                s.consultar(ADMIN, creado.getId());
+                servicio.consultar(
+                        ADMIN,
+                        creado.getId());
 
-        assertEquals(creado.getId(), consultado.getId());
-        assertEquals(creado.getNombre(), consultado.getNombre());
+        // Comprobar
+        assertAll(
+                () -> assertEquals(
+                        creado.getId(),
+                        consultado.getId()),
+                () -> assertEquals(
+                        creado.getNombre(),
+                        consultado.getNombre())
+        );
     }
 
     @Test
+    @DisplayName("Consultar un protocolo inexistente produce un error")
+    void consultarProtocoloInexistente() {
+
+        // Preparar
+        long idInexistente = 999L;
+
+        // Ejecutar y comprobar
+        assertThrows(
+                ProtocoloNoEncontradoException.class,
+                () -> servicio.consultar(
+                        ADMIN,
+                        idInexistente));
+    }
+
+    @Test
+    @DisplayName("Modificar un protocolo actualiza sus datos")
     void modificarActualizaDatos() throws Exception {
-        ProtocolosPruebaServiceImpl s = servicio();
 
-        ProtocoloPrueba creado = s.crear(ADMIN, valido());
+        // Preparar
+        ProtocoloPrueba creado =
+                servicio.crear(ADMIN, valido());
 
-        ProtocoloPrueba nuevosDatos = valido();
-        nuevosDatos.setNombre("Protocolo TAC actualizado");
+        ProtocoloPrueba nuevosDatos =
+                valido();
+
+        nuevosDatos.setNombre(
+                "Protocolo TAC actualizado");
+
         nuevosDatos.setTipoPruebaId(2L);
 
+        // Ejecutar
         ProtocoloPrueba modificado =
-                s.modificar(ADMIN, creado.getId(), nuevosDatos);
+                servicio.modificar(
+                        ADMIN,
+                        creado.getId(),
+                        nuevosDatos);
 
-        assertEquals(
-                "Protocolo TAC actualizado",
-                modificado.getNombre());
-
-        assertEquals(2L, modificado.getTipoPruebaId());
+        // Comprobar
+        assertAll(
+                () -> assertEquals(
+                        "Protocolo TAC actualizado",
+                        modificado.getNombre()),
+                () -> assertEquals(
+                        2L,
+                        modificado.getTipoPruebaId())
+        );
     }
 
     @Test
-    void conservaDatosDeContrasteConsentimientoYSeguridad()
-            throws Exception {
+    @DisplayName("Modificar un protocolo inexistente produce un error")
+    void modificarProtocoloInexistente() {
 
+        // Preparar
+        long idInexistente = 999L;
+
+        // Ejecutar y comprobar
+        assertThrows(
+                ProtocoloNoEncontradoException.class,
+                () -> servicio.modificar(
+                        ADMIN,
+                        idInexistente,
+                        valido()));
+    }
+
+    @Test
+    @DisplayName("El protocolo conserva contraste, consentimiento y requisitos de seguridad")
+    void conservaDatosDeSeguridad() throws Exception {
+
+        // Preparar
+        ProtocoloPrueba datos = valido();
+
+        // Ejecutar
         ProtocoloPrueba creado =
-                servicio().crear(ADMIN, valido());
+                servicio.crear(ADMIN, datos);
 
-        assertTrue(creado.isRequiereContraste());
-        assertTrue(creado.isRequiereConsentimiento());
-
-        assertEquals(
-                "Comprobar alergias",
-                creado.getRequisitosSeguridad());
+        // Comprobar
+        assertAll(
+                () -> assertTrue(
+                        creado.isRequiereContraste()),
+                () -> assertTrue(
+                        creado.isRequiereConsentimiento()),
+                () -> assertEquals(
+                        "Comprobar alergias",
+                        creado.getRequisitosSeguridad())
+        );
     }
 
     @Test
+    @DisplayName("Desactivar un protocolo realiza una baja lógica")
     void desactivarRealizaBajaLogica() throws Exception {
-        ProtocolosPruebaServiceImpl s = servicio();
 
-        ProtocoloPrueba creado = s.crear(ADMIN, valido());
+        // Preparar
+        ProtocoloPrueba creado =
+                servicio.crear(ADMIN, valido());
 
-        s.desactivar(ADMIN, creado.getId());
+        // Ejecutar
+        servicio.desactivar(
+                ADMIN,
+                creado.getId());
 
         ProtocoloPrueba consultado =
-                s.consultar(ADMIN, creado.getId());
+                servicio.consultar(
+                        ADMIN,
+                        creado.getId());
 
+        // Comprobar
         assertFalse(consultado.isActivo());
     }
 
     @Test
+    @DisplayName("El listado filtra protocolos por tipo y estado")
     void listarFiltraPorTipoYEstado() throws Exception {
-        ProtocolosPruebaServiceImpl s = servicio();
 
+        // Preparar
         ProtocoloPrueba primero = valido();
         primero.setTipoPruebaId(1L);
 
@@ -142,24 +270,62 @@ class ProtocolosPruebaServiceImplTest {
         segundo.setNombre("Protocolo RM");
         segundo.setTipoPruebaId(2L);
 
-        ProtocoloPrueba p1 = s.crear(ADMIN, primero);
-        s.crear(ADMIN, segundo);
+        ProtocoloPrueba p1 =
+                servicio.crear(ADMIN, primero);
 
-        s.desactivar(ADMIN, p1.getId());
+        servicio.crear(ADMIN, segundo);
 
-        assertEquals(1, s.listar(ADMIN, 1L, false).size());
-        assertEquals(1, s.listar(ADMIN, 2L, true).size());
-        assertEquals(1, s.listar(ADMIN, null, true).size());
-        assertEquals(1, s.listar(ADMIN, null, false).size());
+        servicio.desactivar(
+                ADMIN,
+                p1.getId());
+
+        // Ejecutar y comprobar
+        assertAll(
+                () -> assertEquals(
+                        1,
+                        servicio.listar(
+                                ADMIN,
+                                1L,
+                                false).size()),
+
+                () -> assertEquals(
+                        1,
+                        servicio.listar(
+                                ADMIN,
+                                2L,
+                                true).size()),
+
+                () -> assertEquals(
+                        1,
+                        servicio.listar(
+                                ADMIN,
+                                null,
+                                true).size()),
+
+                () -> assertEquals(
+                        1,
+                        servicio.listar(
+                                ADMIN,
+                                null,
+                                false).size())
+        );
     }
 
     @Test
+    @DisplayName("Un usuario que no es administrador no puede crear protocolos")
     void soloAdministradorPuedeEscribir() {
-        Usuario medico =
-                new Usuario("medico", Rol.MEDICO);
 
+        // Preparar
+        Usuario medico =
+                new Usuario(
+                        "medico",
+                        Rol.MEDICO);
+
+        // Ejecutar y comprobar
         assertThrows(
                 SinPermisoException.class,
-                () -> servicio().crear(medico, valido()));
+                () -> servicio.crear(
+                        medico,
+                        valido()));
     }
 }
