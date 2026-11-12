@@ -63,6 +63,16 @@ public class PacientesServiceSimulado implements PacientesService {
     }
 
     @Override
+    public void desactivar(Usuario solicitante, long id)
+            throws SinPermisoException, PacienteNoEncontradoException, PacienteYaInactivoException {
+        if (solicitante == null || !solicitante.puedeDarDeAltaPacientes())
+            throw new SinPermisoException("Solo el Personal administrativo puede dar de baja pacientes");
+        Paciente paciente = consultar(solicitante, id);
+        if (!paciente.isActivo()) throw new PacienteYaInactivoException("El paciente " + id + " está dado de baja");
+        paciente.setActivo(false);
+    }
+
+    @Override
     public Paciente modificar(Usuario solicitante, long id, Paciente datos)
             throws SinPermisoException, PacienteNoEncontradoException, PacienteYaInactivoException,
                    DatosInvalidosException, PacienteDuplicadoException {

@@ -46,6 +46,7 @@ public class PantallaModificarPaciente extends JFrame {
     private final JTextField tarjeta = new JTextField(20);
     private final List<JTextField> campos = List.of(nombre, apellidos, dni, telefono, email, direccion, tarjeta);
     private final JButton guardar = new JButton("Guardar cambios");
+    private final JButton darDeBaja = new JButton("Dar de baja");
     private final JLabel aviso = new JLabel(" ");
 
     public PantallaModificarPaciente(PacientesService servicio, Usuario usuario) {
@@ -82,8 +83,13 @@ public class PantallaModificarPaciente extends JFrame {
         campo(formulario, "Dirección", direccion);
         campo(formulario, "Tarjeta sanitaria", tarjeta);
         guardar.addActionListener(e -> guardar());
+        darDeBaja.addActionListener(e -> darDeBaja());
+        darDeBaja.setVisible(disponiblePara(usuario));
+        JPanel acciones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        acciones.add(guardar);
+        acciones.add(darDeBaja);
         formulario.add(new JLabel());
-        formulario.add(guardar);
+        formulario.add(acciones);
 
         aviso.setForeground(Color.RED);
         habilitar(false);
@@ -205,6 +211,30 @@ public class PantallaModificarPaciente extends JFrame {
         }
     }
 
+    private void darDeBaja() {
+        if (idEnEdicion < 0 || !disponiblePara(usuario)) return;
+        int confirmacion = JOptionPane.showConfirmDialog(this,
+                "¿Quieres dar de baja a " + lista.getSelectedValue() + "?\nSus datos e historial se conservarán.",
+                "Confirmar baja", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (confirmacion != JOptionPane.YES_OPTION) return;
+
+        try {
+            servicio.desactivar(usuario, idEnEdicion);
+            int indice = lista.getSelectedIndex();
+            if (indice >= 0) {
+                resultados.remove(indice);
+                modeloLista.remove(indice);
+            }
+            limpiarFormulario();
+            JOptionPane.showMessageDialog(this, "El paciente se ha dado de baja correctamente.",
+                    "Paciente dado de baja", JOptionPane.INFORMATION_MESSAGE);
+        } catch (SinPermisoException | PacienteNoEncontradoException | PacienteYaInactivoException
+                 | ServicioNoDisponibleException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "No se puede dar de baja",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     /** Lee el formulario; devuelve null (tras avisar) si la fecha elegida no existe. */
     private Paciente leerFormulario() {
         Paciente p = new Paciente();
@@ -233,6 +263,7 @@ public class PantallaModificarPaciente extends JFrame {
         mes.setEnabled(activo);
         anio.setEnabled(activo);
         guardar.setEnabled(activo);
+        darDeBaja.setEnabled(activo && disponiblePara(usuario));
     }
 
     private void limpiarFormulario() {
@@ -265,7 +296,9 @@ public class PantallaModificarPaciente extends JFrame {
     }
 
     /** La pantalla de modificación solo está disponible para el Personal administrativo (D-016). */
-    public static boolean disponiblePara(Usuario usuario) { return usuario.puedeDarDeAltaPacientes(); }
+    public static boolean disponiblePara(Usuario usuario) {
+        return usuario != null && usuario.puedeDarDeAltaPacientes();
+    }
 
     /** Uso: PantallaModificarPaciente [ROL] [URL del servidor | simulado]; por defecto PERSONAL_ADMINISTRATIVO y http://localhost:8080. */
     public static void main(String[] args) {
