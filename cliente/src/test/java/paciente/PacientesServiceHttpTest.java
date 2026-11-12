@@ -98,6 +98,34 @@ class PacientesServiceHttpTest {
     }
 
     @Test
+    void bajaCorrectaEnviaDeleteConElIdYElUsuario() throws Exception {
+        estado = 204;
+        respuesta = "";
+
+        servicio().desactivar(ADMIN, 7L);
+
+        assertEquals("DELETE", metodo);
+        assertEquals("/pacientes/7", ruta);
+        assertEquals("ana", cabeceraUsuario);
+        assertEquals("PERSONAL_ADMINISTRATIVO", cabeceraRol);
+    }
+
+    @Test
+    void erroresDeBajaSeConviertenEnExcepcionesDelContrato() {
+        estado = 403;
+        respuesta = "{\"error\":\"SIN_PERMISO\",\"mensaje\":\"Solo Personal administrativo\"}";
+        assertThrows(SinPermisoException.class, () -> servicio().desactivar(ADMIN, 7L));
+
+        estado = 404;
+        respuesta = "{\"error\":\"PACIENTE_NO_ENCONTRADO\",\"mensaje\":\"No existe el paciente con id 7\"}";
+        assertThrows(PacienteNoEncontradoException.class, () -> servicio().desactivar(ADMIN, 7L));
+
+        estado = 409;
+        respuesta = "{\"error\":\"PACIENTE_YA_INACTIVO\",\"mensaje\":\"El paciente 7 está dado de baja\"}";
+        assertThrows(PacienteYaInactivoException.class, () -> servicio().desactivar(ADMIN, 7L));
+    }
+
+    @Test
     void respuestaInesperadaLanzaServicioNoDisponible() {
         estado = 500;
         respuesta = "{}";

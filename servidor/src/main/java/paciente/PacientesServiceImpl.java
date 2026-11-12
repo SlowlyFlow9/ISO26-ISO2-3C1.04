@@ -73,6 +73,16 @@ public class PacientesServiceImpl implements PacientesService {
     }
 
     @Override
+    public synchronized void desactivar(Usuario solicitante, long id)
+            throws SinPermisoException, PacienteNoEncontradoException, PacienteYaInactivoException {
+        ControlAcceso.exigir(solicitante, Rol.PERSONAL_ADMINISTRATIVO);
+        Paciente paciente = consultar(solicitante, id);
+        if (!paciente.isActivo()) throw new PacienteYaInactivoException("El paciente " + id + " está dado de baja");
+        paciente.setActivo(false);
+        repositorio.guardar(paciente);
+    }
+
+    @Override
     public synchronized Paciente modificar(Usuario solicitante, long id, Paciente datos)
             throws SinPermisoException, PacienteNoEncontradoException, PacienteYaInactivoException,
                    DatosInvalidosException, PacienteDuplicadoException {

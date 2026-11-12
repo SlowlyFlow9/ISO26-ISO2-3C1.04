@@ -33,6 +33,17 @@ public interface PacientesService {
     Paciente consultar(Usuario solicitante, long id) throws PacienteNoEncontradoException;
 
     /**
+     * CU24: da de baja lógicamente al paciente sin borrar sus datos ni su historial.
+     *
+     * @throws SinPermisoException si el solicitante no es Personal administrativo (D-016)
+     * @throws PacienteNoEncontradoException si el id no existe
+     * @throws PacienteYaInactivoException si el paciente ya estaba dado de baja (D-010)
+     * @throws ServicioNoDisponibleException si no hay comunicación con el servidor
+     */
+    void desactivar(Usuario solicitante, long id)
+            throws SinPermisoException, PacienteNoEncontradoException, PacienteYaInactivoException;
+
+    /**
      * CU23: sustituye los datos editables del paciente (no cambian id, fechaAlta ni activo).
      *
      * @throws SinPermisoException si el rol del solicitante no es Personal administrativo (D-016)

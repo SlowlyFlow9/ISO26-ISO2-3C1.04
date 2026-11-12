@@ -44,7 +44,12 @@ public class PacientesServidorHttp {
     }
 
     private static void atender(PacientesService servicio, HttpExchange exchange) throws IOException {
-        if (!exchange.getRequestURI().getPath().equals("/pacientes")) {
+        String ruta = exchange.getRequestURI().getPath();
+        if (ruta.startsWith("/pacientes/")) {
+            atenderBaja(servicio, exchange, ruta.substring("/pacientes/".length()));
+            return;
+        }
+        if (!ruta.equals("/pacientes")) {
             responder(exchange, 404, error("NO_ENCONTRADO", null));
             return;
         }
@@ -73,6 +78,35 @@ public class PacientesServidorHttp {
             responder(exchange, 400, json.toString());
         } catch (PacienteDuplicadoException e) {
             responder(exchange, 409, error("DUPLICADO", e.getMessage()));
+        }
+    }
+
+    private static void atenderBaja(PacientesService servicio, HttpExchange exchange, String segmentoId)
+            throws IOException {
+        if (!exchange.getRequestMethod().equals("DELETE")) {
+            responder(exchange, 405, error("METODO_NO_PERMITIDO", null));
+            return;
+        }
+        long id;
+        try {
+            id = Long.parseLong(segmentoId);
+            if (id < 0) throw new NumberFormatException();
+        } catch (NumberFormatException e) {
+            responder(exchange, 404, error("NO_ENCONTRADO", null));
+            return;
+        }
+
+        Usuario usuario = usuario(exchange);
+        try {
+            if (usuario == null) throw new SinPermisoException("Falta el usuario o su rol no es válido");
+            servicio.desactivar(usuario, id);
+            responder(exchange, 204, "");
+        } catch (SinPermisoException e) {
+            responder(exchange, 403, error("SIN_PERMISO", e.getMessage()));
+        } catch (PacienteNoEncontradoException e) {
+            responder(exchange, 404, error("PACIENTE_NO_ENCONTRADO", e.getMessage()));
+        } catch (PacienteYaInactivoException e) {
+            responder(exchange, 409, error("PACIENTE_YA_INACTIVO", e.getMessage()));
         }
     }
 
