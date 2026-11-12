@@ -1,6 +1,7 @@
 package paciente;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.sun.net.httpserver.HttpServer;
@@ -44,6 +45,12 @@ class PacientesServidorHttpTest {
     }
 
     private HttpResponse<String> alta(String cuerpo) throws Exception { return post(cuerpo, "PERSONAL_ADMINISTRATIVO"); }
+
+    private HttpResponse<String> delete(String ruta, String rol) throws Exception {
+        HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(url(ruta))).DELETE();
+        if (rol != null) b.header("X-Usuario", "ana").header("X-Rol", rol);
+        return http.send(b.build(), HttpResponse.BodyHandlers.ofString());
+    }
 
     @Test
     void altaCorrectaDevuelve201ConIdFechaAltaYActivo() throws Exception {
@@ -101,6 +108,39 @@ class PacientesServidorHttpTest {
     void sinUsuarioOConRolDesconocidoDevuelve403() throws Exception {
         assertEquals(403, post(cuerpo("12345678Z", "T1"), null).statusCode());
         assertEquals(403, post(cuerpo("12345678Z", "T1"), "SUPERUSUARIO").statusCode());
+    }
+
+    @Test
+    void bajaLogicaDevuelve204YConservaElPaciente() throws Exception {
+        alta(cuerpo("12345678Z", "T1"));
+
+        HttpResponse<String> baja = delete("/pacientes/1", "PERSONAL_ADMINISTRATIVO");
+
+        assertEquals(204, baja.statusCode());
+        Paciente guardado = repositorio.buscarPorId(1L).orElseThrow();
+        assertFalse(guardado.isActivo());
+        assertEquals("12345678Z", guardado.getDni());
+    }
+
+    @Test
+    void bajaInexistenteDevuelve404YPacienteYaInactivo409() throws Exception {
+        assertEquals(404, delete("/pacientes/99", "PERSONAL_ADMINISTRATIVO").statusCode());
+        alta(cuerpo("12345678Z", "T1"));
+        assertEquals(204, delete("/pacientes/1", "PERSONAL_ADMINISTRATIVO").statusCode());
+        HttpResponse<String> repetida = delete("/pacientes/1", "PERSONAL_ADMINISTRATIVO");
+        assertEquals(409, repetida.statusCode());
+        assertTrue(repetida.body().contains("PACIENTE_YA_INACTIVO"));
+    }
+
+    @Test
+    void bajaSoloPermitidaAlPersonalAdministrativo() throws Exception {
+        alta(cuerpo("12345678Z", "T1"));
+
+        HttpResponse<String> baja = delete("/pacientes/1", "MEDICO");
+
+        assertEquals(403, baja.statusCode());
+        assertTrue(repositorio.buscarPorId(1L).orElseThrow().isActivo());
+        assertEquals(403, delete("/pacientes/1", null).statusCode());
     }
 
     @Test
