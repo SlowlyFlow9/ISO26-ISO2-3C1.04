@@ -166,10 +166,10 @@ Consecuencias: los datos se pierden al reiniciar el servidor. CU23 y CU24 usan e
 ## D-025 · Características de calidad ISO 25010 de la planificación
 Fecha: 29/10 · It. 0 · Acta: pendiente
 Contexto: la planificación debe incluir tres características del modelo de calidad del producto de ISO 25010.
-Decisión: incluir Adecuación funcional, Seguridad y Fiabilidad. Adecuación funcional se comprueba en todas las iteraciones; además cada iteración tiene una característica de foco (columna Calidad de la planificación) y la evaluación final se hace en una iteración ItQ siguiendo los cinco pasos de ISO 25040. (propuesta)
+Decisión: incluir Adecuación funcional, Seguridad y Fiabilidad. Adecuación funcional se comprueba en todas las iteraciones; además cada iteración tiene una característica de foco (columna Calidad de la planificación) y la evaluación final se hace en una iteración ItQ siguiendo los cinco pasos de ISO 25040. De ellas se derivan requisitos no funcionales (RNF-AF, RNF-SEG y RNF-FIA), cada uno con su iteración y su forma de medirlo. (propuesta)
 Alternativas: Capacidad de uso; Compatibilidad (interoperabilidad); Eficacia de desempeño, Mantenibilidad y Portabilidad.
-Motivo: Adecuación funcional, porque trabajamos por casos de uso y esta característica comprueba que cada CU cubre su RF y lo hace correctamente (completitud y corrección funcional). Seguridad, porque se manejan datos de pacientes, informes e imágenes clínicas y hay requisitos que son justo sus subcaracterísticas: roles y permisos (RF38, RF39), auditoría de actividades y accesos a datos clínicos (RF40, RF41) y validación de identidad con SSO (RF45). Fiabilidad, porque el sistema gestiona agendas y citas (RF14, RF25, RF26), intercambia información con sistemas externos (RF46, RF48) y ejecuta procesos automáticos con el temporizador (RF49, RF50), y un fallo afecta directamente a la atención al paciente (disponibilidad, tolerancia a fallos y capacidad de recuperación).
-Consecuencias: la planificación añade la columna Calidad, un plan de calidad, las iteraciones It13 (integraciones externas) e It14 (procesos automáticos) para RF45 a RF50, y la iteración ItQ de evaluación; el total pasa a 511 horas, 34 días y 15.775 €. Al terminar el proyecto hay que medir estas tres características en el producto entregado.
+Motivo: Adecuación funcional, porque trabajamos por casos de uso y esta característica comprueba que cada CU cubre su RF y lo hace correctamente (completitud, corrección y pertinencia funcional). Seguridad, porque se manejan datos de pacientes, informes e imágenes clínicas y hay requisitos que son justo sus subcaracterísticas: roles y permisos (RF38, RF39), auditoría de actividades y accesos a datos clínicos (RF40, RF41) y validación de identidad con SSO (RF45). Fiabilidad, porque el sistema gestiona agendas y citas (RF14, RF25, RF26), intercambia información con sistemas externos (RF46, RF48) y ejecuta procesos automáticos con el temporizador (RF49, RF50), y un fallo afecta directamente a la atención al paciente (madurez, disponibilidad, tolerancia a fallos y recuperabilidad).
+Consecuencias: la planificación añade la columna Calidad, un plan de calidad, las iteraciones It13 (integraciones externas) e It14 (procesos automáticos) para RF45 a RF50, y la iteración ItQ de evaluación; el total pasa a 511 horas, 25 días y 15.775 € (15.913 € con las licencias de IA, D-028). Algunos requisitos describen el producto final y en este proyecto se implementan de forma simplificada por D-016, D-023 y D-024 (control de rol sin autenticación real y almacenamiento en memoria). Al terminar el proyecto hay que medir estas tres características en el producto entregado.
 
 ## D-026 · Estado inicial de las solicitudes de prueba
 Fecha: 08/11/2026 · It. 3 · Acta: pendiente · Issue: #24, #42, #43 · Relacionada con CU12, CU13, CU25 y CU27
@@ -180,3 +180,24 @@ Motivo: `PENDIENTE_CITACION` distingue claramente el proceso de prescripción m�
 Consecuencias: El servidor de CU11 crea las solicitudes con `PENDIENTE_CITACION`, asigna la fecha de creación y guarda la solicitud mediante el repositorio correspondiente. El cliente utiliza el mismo enumerado y muestra el estado en la confirmación de la prescripción. Se han implementado y ejecutado pruebas JUnit del servicio y de la comunicación HTTP. CU12 reutilizará la misma entidad y CU13 deberá definir los estados posteriores y las transiciones permitidas. CU25 y CU27 podrán utilizar las solicitudes pendientes para gestionar citas y listas de espera.
 Pendiente de acordar: La aprobación formal de esta decisión por el equipo, los demás estados y sus transiciones, los campos definitivos compartidos con CU12 y CU13, y la relación entre el identificador del médico y la identidad del usuario solicitante.
 
+
+## D-027 · Tarifa y dedicación para la planificación
+Fecha: 13/11 · It. 0 · Acta: pendiente
+Contexto: el enunciado no fija las tarifas del equipo y propone una semana de 40 horas para un consultor humano; la planificación necesita una tarifa y una capacidad.
+Decisión: todos los integrantes tienen una tarifa única de 25 €/h y una dedicación de 40 h/semana. La capacidad del equipo es 6 × 40 = 240 h/semana (48 h por día laborable) y los días de cada iteración son sus horas entre 48 h, redondeado hacia arriba. (propuesta)
+Alternativas: tarifas distintas por rol (45, 40 y 35 €/h); dedicación de 25 h/semana por persona.
+Motivo: simplifica el cálculo y sigue el supuesto del enunciado; es la tarifa de referencia del boletín E.01.02.
+Consecuencias: con ninguna iteración por encima de 44 h, cada una ocupa 1 día (22 días en el plan inicial y 25 en el actualizado). Es una duración teórica: el calendario real depende de la dedicación efectiva.
+
+## D-028 · Licencias de IA en el presupuesto
+Fecha: 13/11 · It. 0 · Acta: pendiente
+Contexto: el enunciado pide tener en cuenta el coste de las licencias de los modelos de IA.
+Decisión: se imputan Claude Pro (22 €/mes) y ChatGPT Pro (24 €/mes), una cuenta de cada una durante tres meses (octubre a diciembre): 3 × (22 + 24) = 138 €. GitHub Copilot (licencia campus) y Visual Paradigm (licencia académica) no suponen coste. (propuesta)
+Motivo: es un coste real de producción del proyecto.
+Consecuencias: el presupuesto es 15.775 € de personal + 138 € de licencias = 15.913 €.
+
+## D-029 · Fecha de finalización y calendario de liberaciones
+Fecha: 13/11 · It. 0 · Acta: pendiente
+Contexto: la planificación debe indicar una fecha de finalización y un calendario de liberaciones.
+Decisión: con la capacidad teórica las 25 jornadas terminarían el 12/11/2026; como la dedicación efectiva es menor, la fecha de finalización es la de entrega, el 15/12/2026. Cada hito de fase genera una versión con Semantic Versioning: línea base de la arquitectura (It. 3) v0.3.0, capacidad operacional inicial (It. 14) v0.14.0 y entrega del producto final (It. N) v1.0.0 el 15/12/2026. (propuesta)
+Consecuencias: las versiones de los módulos Maven deberán alinearse con este calendario.
