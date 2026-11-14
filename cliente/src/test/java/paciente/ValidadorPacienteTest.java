@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDate;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class ValidadorPacienteTest {
@@ -19,59 +20,141 @@ class ValidadorPacienteTest {
     }
 
     @Test
+    @DisplayName("Un paciente completo no tiene errores")
     void pacienteCompletoNoTieneErrores() {
-        assertTrue(ValidadorPaciente.validar(valido()).isEmpty());
+        // Preparar
+        Paciente p = valido();
+        // Ejecutar
+        var errores = ValidadorPaciente.validar(p);
+        // Comprobar
+        assertTrue(errores.isEmpty());
     }
 
     @Test
+    @DisplayName("Los campos opcionales vacíos son válidos")
     void opcionalesVaciosSonValidos() {
+        // Preparar
         Paciente p = valido();
         p.setEmail("");
         p.setDireccion(" ");
         p.setNumeroTarjetaSanitaria(null);
-        assertTrue(ValidadorPaciente.validar(p).isEmpty());
+        // Ejecutar
+        var errores = ValidadorPaciente.validar(p);
+        // Comprobar
+        assertTrue(errores.isEmpty());
     }
 
     @Test
+    @DisplayName("Cada campo obligatorio vacío genera un error")
     void cadaObligatorioVacioGeneraUnError() {
+        // Preparar
         Paciente p = new Paciente();
         p.setNombre("  ");
-        assertEquals(5, ValidadorPaciente.validar(p).size());
+        // Ejecutar
+        var errores = ValidadorPaciente.validar(p);
+        // Comprobar
+        assertEquals(5, errores.size());
+    }
+
+    // ---- DNI / NIE ----
+
+    @Test
+    @DisplayName("Un DNI válido pasa")
+    void dniValidoPasa() { assertDniValido("12345678Z"); }
+
+    @Test
+    @DisplayName("Un NIE válido pasa")
+    void nieValidoPasa() { assertDniValido("X1234567L"); }
+
+    @Test
+    @DisplayName("Un NIE en minúsculas y con espacios pasa")
+    void nieEnMinusculasYConEspaciosPasa() { assertDniValido(" y1234567x "); }
+
+    private void assertDniValido(String dni) {
+        // Preparar
+        Paciente p = valido();
+        p.setDni(dni);
+        // Ejecutar
+        var errores = ValidadorPaciente.validar(p);
+        // Comprobar
+        assertTrue(errores.isEmpty());
     }
 
     @Test
-    void dniYNieValidosPasan() {
-        for (String dni : new String[] {"12345678Z", "X1234567L", " y1234567x "}) {
-            Paciente p = valido();
-            p.setDni(dni);
-            assertTrue(ValidadorPaciente.validar(p).isEmpty(), dni);
-        }
-    }
+    @DisplayName("Un DNI con 7 dígitos y letra genera un error")
+    void dniConSieteDigitosGeneraError() { assertDniInvalido("1234567Z"); }
 
     @Test
-    void dniConFormatoInvalidoGeneraError() {
-        for (String dni : new String[] {"1234567Z", "123456789", "ABCDEFGHI", "X12345678"}) {
-            Paciente p = valido();
-            p.setDni(dni);
-            assertEquals(1, ValidadorPaciente.validar(p).size(), dni);
-        }
-    }
+    @DisplayName("Un DNI con 9 dígitos y sin letra genera un error")
+    void dniSoloNumericoGeneraError() { assertDniInvalido("123456789"); }
 
     @Test
-    void fechaNacimientoFuturaGeneraErrorYLaDeHoyEsValida() {
+    @DisplayName("Un DNI con solo letras genera un error")
+    void dniSoloLetrasGeneraError() { assertDniInvalido("ABCDEFGHI"); }
+
+    @Test
+    @DisplayName("Un NIE con 8 dígitos genera un error")
+    void nieConOchoDigitosGeneraError() { assertDniInvalido("X12345678"); }
+
+    private void assertDniInvalido(String dni) {
+        // Preparar
+        Paciente p = valido();
+        p.setDni(dni);
+        // Ejecutar
+        var errores = ValidadorPaciente.validar(p);
+        // Comprobar
+        assertEquals(1, errores.size());
+    }
+
+    // ---- Fecha de nacimiento ----
+
+    @Test
+    @DisplayName("Una fecha de nacimiento futura (mañana) genera un error")
+    void fechaNacimientoFuturaGeneraError() {
+        // Preparar
         Paciente p = valido();
         p.setFechaNacimiento(LocalDate.now().plusDays(1));
-        assertEquals(1, ValidadorPaciente.validar(p).size());
-        p.setFechaNacimiento(LocalDate.now());
-        assertTrue(ValidadorPaciente.validar(p).isEmpty());
+        // Ejecutar
+        var errores = ValidadorPaciente.validar(p);
+        // Comprobar
+        assertEquals(1, errores.size());
     }
 
     @Test
-    void emailInvalidoGeneraError() {
+    @DisplayName("Una fecha de nacimiento de hoy es válida (valor límite)")
+    void fechaNacimientoDeHoyEsValida() {
+        // Preparar
+        Paciente p = valido();
+        p.setFechaNacimiento(LocalDate.now());
+        // Ejecutar
+        var errores = ValidadorPaciente.validar(p);
+        // Comprobar
+        assertTrue(errores.isEmpty());
+    }
+
+    // ---- Email ----
+
+    @Test
+    @DisplayName("Un email sin arroba genera un error")
+    void emailSinArrobaGeneraError() {
+        // Preparar
         Paciente p = valido();
         p.setEmail("sin-arroba");
-        assertEquals(1, ValidadorPaciente.validar(p).size());
+        // Ejecutar
+        var errores = ValidadorPaciente.validar(p);
+        // Comprobar
+        assertEquals(1, errores.size());
+    }
+
+    @Test
+    @DisplayName("Un email con formato correcto es válido")
+    void emailCorrectoEsValido() {
+        // Preparar
+        Paciente p = valido();
         p.setEmail("ana@correo.es");
-        assertTrue(ValidadorPaciente.validar(p).isEmpty());
+        // Ejecutar
+        var errores = ValidadorPaciente.validar(p);
+        // Comprobar
+        assertTrue(errores.isEmpty());
     }
 }

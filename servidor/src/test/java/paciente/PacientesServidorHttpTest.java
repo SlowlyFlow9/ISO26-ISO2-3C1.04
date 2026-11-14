@@ -1,5 +1,6 @@
 package paciente;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,6 +13,7 @@ import java.net.http.HttpResponse;
 import java.time.LocalDate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /** Pruebas de aceptación de los criterios de #36 a través del protocolo HTTP de D-022 y D-023. */
@@ -52,104 +54,280 @@ class PacientesServidorHttpTest {
         return http.send(b.build(), HttpResponse.BodyHandlers.ofString());
     }
 
+    private HttpResponse<String> get(String ruta) throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(url(ruta))).GET().build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    // ---- Alta correcta ----
+
     @Test
+    @DisplayName("El alta correcta devuelve 201 con id, fecha de alta y activo")
     void altaCorrectaDevuelve201ConIdFechaAltaYActivo() throws Exception {
-        HttpResponse<String> r = alta(cuerpo("12345678Z", "T1"));
-        assertEquals(201, r.statusCode());
-        assertTrue(r.body().contains("\"id\":1"));
-        assertTrue(r.body().contains("\"fechaAlta\":\"" + LocalDate.now() + "\""));
-        assertTrue(r.body().contains("\"activo\":true"));
+        // Preparar
+        String cuerpo = cuerpo("12345678Z", "T1");
+        // Ejecutar
+        HttpResponse<String> r = alta(cuerpo);
+        // Comprobar
+        assertAll(
+                () -> assertEquals(201, r.statusCode()),
+                () -> assertTrue(r.body().contains("\"id\":1")),
+                () -> assertTrue(r.body().contains("\"fechaAlta\":\"" + LocalDate.now() + "\"")),
+                () -> assertTrue(r.body().contains("\"activo\":true")));
     }
 
     @Test
+    @DisplayName("El paciente queda disponible para otros casos de uso")
     void elPacienteQuedaDisponibleParaOtrosCasosDeUso() throws Exception {
-        alta(cuerpo("12345678Z", "T1"));
+        // Preparar
+        String cuerpo = cuerpo("12345678Z", "T1");
+        // Ejecutar
+        alta(cuerpo);
+        // Comprobar
         assertEquals("12345678Z", repositorio.buscarPorId(1L).orElseThrow().getDni());
     }
 
+    // ---- Duplicados ----
+
     @Test
-    void dniOTarjetaRepetidosDevuelven409() throws Exception {
+    @DisplayName("Un DNI repetido devuelve 409 con código DUPLICADO")
+    void dniRepetidoDevuelve409() throws Exception {
+        // Preparar
         alta(cuerpo("12345678Z", "T1"));
-        HttpResponse<String> porDni = alta(cuerpo("12345678Z", "T2"));
-        assertEquals(409, porDni.statusCode());
-        assertTrue(porDni.body().contains("DUPLICADO"));
-        assertEquals(409, alta(cuerpo("87654321X", "T1")).statusCode());
+        // Ejecutar
+        HttpResponse<String> r = alta(cuerpo("12345678Z", "T2"));
+        // Comprobar
+        assertAll(
+                () -> assertEquals(409, r.statusCode()),
+                () -> assertTrue(r.body().contains("DUPLICADO")));
     }
 
     @Test
-    void datosInvalidosDevuelven400ConLaListaDeErrores() throws Exception {
-        HttpResponse<String> vacios = alta("{}");
-        assertEquals(400, vacios.statusCode());
-        assertTrue(vacios.body().contains("DATOS_INVALIDOS"));
-        assertTrue(vacios.body().contains("\"errores\":["));
-        assertEquals(400, alta(cuerpo("123", "T1")).statusCode());
-        assertEquals(400, alta(cuerpo("12345678Z", "T1").replace("\"telefono\"", "\"email\":\"mal\",\"telefono\"")).statusCode());
-        assertEquals(400, alta(cuerpo("12345678Z", "T1").replace("1990-05-01", LocalDate.now().plusDays(1).toString())).statusCode());
+    @DisplayName("Una tarjeta repetida devuelve 409")
+    void tarjetaRepetidaDevuelve409() throws Exception {
+        // Preparar
+        alta(cuerpo("12345678Z", "T1"));
+        // Ejecutar
+        HttpResponse<String> r = alta(cuerpo("87654321X", "T1"));
+        // Comprobar
+        assertEquals(409, r.statusCode());
+    }
+
+    // ---- Datos inválidos ----
+
+    @Test
+    @DisplayName("Un cuerpo vacío {} devuelve 400 con la lista de errores")
+    void cuerpoSinCamposDevuelve400ConLaListaDeErrores() throws Exception {
+        // Preparar
+        String cuerpo = "{}";
+        // Ejecutar
+        HttpResponse<String> r = alta(cuerpo);
+        // Comprobar
+        assertAll(
+                () -> assertEquals(400, r.statusCode()),
+                () -> assertTrue(r.body().contains("DATOS_INVALIDOS")),
+                () -> assertTrue(r.body().contains("\"errores\":[")));
     }
 
     @Test
+    @DisplayName("Un DNI inválido devuelve 400")
+    void dniInvalidoDevuelve400() throws Exception {
+        // Preparar
+        String cuerpo = cuerpo("123", "T1");
+        // Ejecutar
+        HttpResponse<String> r = alta(cuerpo);
+        // Comprobar
+        assertEquals(400, r.statusCode());
+    }
+
+    @Test
+    @DisplayName("Un email inválido devuelve 400")
+    void emailInvalidoDevuelve400() throws Exception {
+        // Preparar
+        String cuerpo = cuerpo("12345678Z", "T1").replace("\"telefono\"", "\"email\":\"mal\",\"telefono\"");
+        // Ejecutar
+        HttpResponse<String> r = alta(cuerpo);
+        // Comprobar
+        assertEquals(400, r.statusCode());
+    }
+
+    @Test
+    @DisplayName("Una fecha de nacimiento futura devuelve 400")
+    void fechaNacimientoFuturaDevuelve400() throws Exception {
+        // Preparar
+        String cuerpo = cuerpo("12345678Z", "T1").replace("1990-05-01", LocalDate.now().plusDays(1).toString());
+        // Ejecutar
+        HttpResponse<String> r = alta(cuerpo);
+        // Comprobar
+        assertEquals(400, r.statusCode());
+    }
+
+    @Test
+    @DisplayName("Un cuerpo que no es JSON devuelve 400")
     void cuerpoQueNoEsJsonDevuelve400() throws Exception {
-        assertEquals(400, alta("esto no es json").statusCode());
-        assertEquals(400, alta("").statusCode());
+        // Preparar
+        String cuerpo = "esto no es json";
+        // Ejecutar
+        HttpResponse<String> r = alta(cuerpo);
+        // Comprobar
+        assertEquals(400, r.statusCode());
     }
 
     @Test
-    void soloElPersonalAdministrativoPuedeDarDeAlta() throws Exception {
-        for (Rol rol : Rol.values()) {
-            if (rol == Rol.PERSONAL_ADMINISTRATIVO) continue;
-            HttpResponse<String> r = post(cuerpo("12345678Z", "T1"), rol.name());
-            assertEquals(403, r.statusCode(), rol.name());
-            assertTrue(r.body().contains("SIN_PERMISO"));
-        }
-        assertTrue(repositorio.buscarPorId(1L).isEmpty());
+    @DisplayName("Un cuerpo vacío (cadena vacía) devuelve 400")
+    void cuerpoEnBlancoDevuelve400() throws Exception {
+        // Preparar
+        String cuerpo = "";
+        // Ejecutar
+        HttpResponse<String> r = alta(cuerpo);
+        // Comprobar
+        assertEquals(400, r.statusCode());
+    }
+
+    // ---- Permisos ----
+
+    @Test
+    @DisplayName("El rol PACIENTE recibe 403 SIN_PERMISO y no se guarda nada")
+    void pacienteRecibe403() throws Exception {
+        assertAltaProhibida("PACIENTE");
     }
 
     @Test
-    void sinUsuarioOConRolDesconocidoDevuelve403() throws Exception {
-        assertEquals(403, post(cuerpo("12345678Z", "T1"), null).statusCode());
-        assertEquals(403, post(cuerpo("12345678Z", "T1"), "SUPERUSUARIO").statusCode());
+    @DisplayName("El rol MEDICO recibe 403 SIN_PERMISO y no se guarda nada")
+    void medicoRecibe403() throws Exception {
+        assertAltaProhibida("MEDICO");
     }
 
     @Test
-    void bajaLogicaDevuelve204YConservaElPaciente() throws Exception {
+    @DisplayName("El rol ADMINISTRADOR recibe 403 SIN_PERMISO y no se guarda nada")
+    void administradorRecibe403() throws Exception {
+        assertAltaProhibida("ADMINISTRADOR");
+    }
+
+    private void assertAltaProhibida(String rol) throws Exception {
+        // Preparar
+        String cuerpo = cuerpo("12345678Z", "T1");
+        // Ejecutar
+        HttpResponse<String> r = post(cuerpo, rol);
+        // Comprobar
+        assertAll(
+                () -> assertEquals(403, r.statusCode()),
+                () -> assertTrue(r.body().contains("SIN_PERMISO")),
+                () -> assertTrue(repositorio.buscarPorId(1L).isEmpty()));
+    }
+
+    @Test
+    @DisplayName("Sin usuario la petición devuelve 403")
+    void sinUsuarioDevuelve403() throws Exception {
+        // Preparar
+        String cuerpo = cuerpo("12345678Z", "T1");
+        // Ejecutar
+        HttpResponse<String> r = post(cuerpo, null);
+        // Comprobar
+        assertEquals(403, r.statusCode());
+    }
+
+    @Test
+    @DisplayName("Con un rol desconocido la petición devuelve 403")
+    void rolDesconocidoDevuelve403() throws Exception {
+        // Preparar
+        String cuerpo = cuerpo("12345678Z", "T1");
+        // Ejecutar
+        HttpResponse<String> r = post(cuerpo, "SUPERUSUARIO");
+        // Comprobar
+        assertEquals(403, r.statusCode());
+    }
+
+    // ---- Baja (CU24) ----
+
+    @Test
+    @DisplayName("La baja de un paciente activo devuelve 204")
+    void bajaDevuelve204() throws Exception {
+        // Preparar
         alta(cuerpo("12345678Z", "T1"));
+        // Ejecutar
+        HttpResponse<String> r = delete("/pacientes/1", "PERSONAL_ADMINISTRATIVO");
+        // Comprobar
+        assertEquals(204, r.statusCode());
+    }
 
-        HttpResponse<String> baja = delete("/pacientes/1", "PERSONAL_ADMINISTRATIVO");
-
-        assertEquals(204, baja.statusCode());
+    @Test
+    @DisplayName("La baja es lógica: el paciente queda inactivo y conserva sus datos")
+    void bajaConservaElPaciente() throws Exception {
+        // Preparar
+        alta(cuerpo("12345678Z", "T1"));
+        // Ejecutar
+        delete("/pacientes/1", "PERSONAL_ADMINISTRATIVO");
+        // Comprobar
         Paciente guardado = repositorio.buscarPorId(1L).orElseThrow();
-        assertFalse(guardado.isActivo());
-        assertEquals("12345678Z", guardado.getDni());
+        assertAll(
+                () -> assertFalse(guardado.isActivo()),
+                () -> assertEquals("12345678Z", guardado.getDni()));
     }
 
     @Test
-    void bajaInexistenteDevuelve404YPacienteYaInactivo409() throws Exception {
-        assertEquals(404, delete("/pacientes/99", "PERSONAL_ADMINISTRATIVO").statusCode());
+    @DisplayName("Dar de baja un paciente inexistente devuelve 404")
+    void bajaDePacienteInexistenteDevuelve404() throws Exception {
+        // Ejecutar
+        HttpResponse<String> r = delete("/pacientes/99", "PERSONAL_ADMINISTRATIVO");
+        // Comprobar
+        assertEquals(404, r.statusCode());
+    }
+
+    @Test
+    @DisplayName("Dar de baja un paciente ya inactivo devuelve 409 PACIENTE_YA_INACTIVO")
+    void bajaDePacienteYaInactivoDevuelve409() throws Exception {
+        // Preparar
         alta(cuerpo("12345678Z", "T1"));
-        assertEquals(204, delete("/pacientes/1", "PERSONAL_ADMINISTRATIVO").statusCode());
-        HttpResponse<String> repetida = delete("/pacientes/1", "PERSONAL_ADMINISTRATIVO");
-        assertEquals(409, repetida.statusCode());
-        assertTrue(repetida.body().contains("PACIENTE_YA_INACTIVO"));
+        delete("/pacientes/1", "PERSONAL_ADMINISTRATIVO");
+        // Ejecutar
+        HttpResponse<String> r = delete("/pacientes/1", "PERSONAL_ADMINISTRATIVO");
+        // Comprobar
+        assertAll(
+                () -> assertEquals(409, r.statusCode()),
+                () -> assertTrue(r.body().contains("PACIENTE_YA_INACTIVO")));
     }
 
     @Test
-    void bajaSoloPermitidaAlPersonalAdministrativo() throws Exception {
+    @DisplayName("El rol MEDICO no puede dar de baja: 403 y el paciente sigue activo")
+    void bajaDelMedicoDevuelve403() throws Exception {
+        // Preparar
         alta(cuerpo("12345678Z", "T1"));
-
-        HttpResponse<String> baja = delete("/pacientes/1", "MEDICO");
-
-        assertEquals(403, baja.statusCode());
-        assertTrue(repositorio.buscarPorId(1L).orElseThrow().isActivo());
-        assertEquals(403, delete("/pacientes/1", null).statusCode());
+        // Ejecutar
+        HttpResponse<String> r = delete("/pacientes/1", "MEDICO");
+        // Comprobar
+        assertAll(
+                () -> assertEquals(403, r.statusCode()),
+                () -> assertTrue(repositorio.buscarPorId(1L).orElseThrow().isActivo()));
     }
 
     @Test
-    void otrosMetodosYRutasDevuelven405Y404() throws Exception {
-        HttpResponse<String> get = http.send(HttpRequest.newBuilder(URI.create(url("/pacientes"))).GET().build(),
-                HttpResponse.BodyHandlers.ofString());
-        assertEquals(405, get.statusCode());
-        HttpResponse<String> otra = http.send(HttpRequest.newBuilder(URI.create(url("/otra"))).GET().build(),
-                HttpResponse.BodyHandlers.ofString());
-        assertEquals(404, otra.statusCode());
+    @DisplayName("Una baja sin usuario devuelve 403")
+    void bajaSinUsuarioDevuelve403() throws Exception {
+        // Preparar
+        alta(cuerpo("12345678Z", "T1"));
+        // Ejecutar
+        HttpResponse<String> r = delete("/pacientes/1", null);
+        // Comprobar
+        assertEquals(403, r.statusCode());
+    }
+
+    // ---- Método y ruta ----
+
+    @Test
+    @DisplayName("Un GET sobre /pacientes devuelve 405")
+    void getSobrePacientesDevuelve405() throws Exception {
+        // Ejecutar
+        HttpResponse<String> r = get("/pacientes");
+        // Comprobar
+        assertEquals(405, r.statusCode());
+    }
+
+    @Test
+    @DisplayName("Una ruta desconocida devuelve 404")
+    void rutaDesconocidaDevuelve404() throws Exception {
+        // Ejecutar
+        HttpResponse<String> r = get("/otra");
+        // Comprobar
+        assertEquals(404, r.statusCode());
     }
 }
