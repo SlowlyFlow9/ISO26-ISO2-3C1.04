@@ -3,9 +3,15 @@ package paciente;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class PacientesRepositorioMemoriaTest {
+    private PacientesRepositorioMemoria repositorio;
+
+    @BeforeEach
+    void setUp() { repositorio = new PacientesRepositorioMemoria(); }
 
     private Paciente paciente(String dni, String tarjeta) {
         Paciente p = new Paciente();
@@ -15,36 +21,82 @@ class PacientesRepositorioMemoriaTest {
     }
 
     @Test
+    @DisplayName("Guardar asigna ids consecutivos")
     void guardarAsignaIdsConsecutivos() {
-        PacientesRepositorioMemoria r = new PacientesRepositorioMemoria();
-        assertEquals(1L, r.guardar(paciente("1A", null)).getId());
-        assertEquals(2L, r.guardar(paciente("2B", null)).getId());
+        // Preparar
+        Paciente primero = paciente("1A", null);
+        Paciente segundo = paciente("2B", null);
+        // Ejecutar
+        Paciente g1 = repositorio.guardar(primero);
+        Paciente g2 = repositorio.guardar(segundo);
+        // Comprobar
+        assertEquals(1L, g1.getId());
+        assertEquals(2L, g2.getId());
     }
 
     @Test
+    @DisplayName("Guardar un paciente con id existente lo sustituye")
     void guardarConIdExistenteSustituye() {
-        PacientesRepositorioMemoria r = new PacientesRepositorioMemoria();
-        Paciente p = r.guardar(paciente("1A", null));
+        // Preparar
+        Paciente p = repositorio.guardar(paciente("1A", null));
         p.setNombre("Nuevo");
-        r.guardar(p);
-        assertEquals("Nuevo", r.buscarPorId(1L).orElseThrow().getNombre());
+        // Ejecutar
+        repositorio.guardar(p);
+        // Comprobar
+        assertEquals("Nuevo", repositorio.buscarPorId(1L).orElseThrow().getNombre());
     }
 
     @Test
-    void buscaPorDniYTarjetaSinDistinguirMayusculas() {
-        PacientesRepositorioMemoria r = new PacientesRepositorioMemoria();
-        r.guardar(paciente("1A", "Ta"));
-        assertTrue(r.buscarPorDni("1a").isPresent());
-        assertTrue(r.buscarPorTarjeta("tA").isPresent());
-        assertTrue(r.buscarPorDni("9Z").isEmpty());
-        assertTrue(r.buscarPorTarjeta("otra").isEmpty());
-        assertTrue(r.buscarPorId(5L).isEmpty());
+    @DisplayName("Se busca por DNI sin distinguir mayúsculas")
+    void buscaPorDniSinDistinguirMayusculas() {
+        // Preparar
+        repositorio.guardar(paciente("1A", "Ta"));
+        // Ejecutar y comprobar
+        assertTrue(repositorio.buscarPorDni("1a").isPresent());
     }
 
     @Test
+    @DisplayName("Se busca por tarjeta sin distinguir mayúsculas")
+    void buscaPorTarjetaSinDistinguirMayusculas() {
+        // Preparar
+        repositorio.guardar(paciente("1A", "Ta"));
+        // Ejecutar y comprobar
+        assertTrue(repositorio.buscarPorTarjeta("tA").isPresent());
+    }
+
+    @Test
+    @DisplayName("Un DNI inexistente no se encuentra")
+    void dniInexistenteNoSeEncuentra() {
+        // Preparar
+        repositorio.guardar(paciente("1A", "Ta"));
+        // Ejecutar y comprobar
+        assertTrue(repositorio.buscarPorDni("9Z").isEmpty());
+    }
+
+    @Test
+    @DisplayName("Una tarjeta inexistente no se encuentra")
+    void tarjetaInexistenteNoSeEncuentra() {
+        // Preparar
+        repositorio.guardar(paciente("1A", "Ta"));
+        // Ejecutar y comprobar
+        assertTrue(repositorio.buscarPorTarjeta("otra").isEmpty());
+    }
+
+    @Test
+    @DisplayName("Un id inexistente no se encuentra")
+    void idInexistenteNoSeEncuentra() {
+        // Preparar
+        repositorio.guardar(paciente("1A", "Ta"));
+        // Ejecutar y comprobar
+        assertTrue(repositorio.buscarPorId(5L).isEmpty());
+    }
+
+    @Test
+    @DisplayName("Un paciente sin tarjeta no coincide con ninguna búsqueda por tarjeta")
     void sinTarjetaNoCoincideConNingunaBusqueda() {
-        PacientesRepositorioMemoria r = new PacientesRepositorioMemoria();
-        r.guardar(paciente("1A", null));
-        assertTrue(r.buscarPorTarjeta("x").isEmpty());
+        // Preparar
+        repositorio.guardar(paciente("1A", null));
+        // Ejecutar y comprobar
+        assertTrue(repositorio.buscarPorTarjeta("x").isEmpty());
     }
 }
