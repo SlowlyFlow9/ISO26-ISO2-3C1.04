@@ -78,6 +78,39 @@ public class PacientesServiceHttp implements PacientesService {
     }
 
     @Override
+    public void desactivar(Usuario solicitante, long id)
+            throws SinPermisoException, PacienteNoEncontradoException, PacienteYaInactivoException {
+        HttpRequest peticion = HttpRequest.newBuilder(URI.create(urlBase + "/pacientes/" + id))
+                .timeout(Duration.ofSeconds(10))
+                .header("X-Usuario", solicitante.nombre())
+                .header("X-Rol", solicitante.rol().name())
+                .DELETE()
+                .build();
+        HttpResponse<String> respuesta;
+        try {
+            respuesta = http.send(peticion, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException e) {
+            throw new ServicioNoDisponibleException("No se pudo conectar con el servidor", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ServicioNoDisponibleException("Petición interrumpida", e);
+        }
+        try {
+            switch (respuesta.statusCode()) {
+                case 204: return;
+                case 403: throw new SinPermisoException(mensaje(respuesta.body()));
+                case 404: throw new PacienteNoEncontradoException(mensaje(respuesta.body()));
+                case 409: throw new PacienteYaInactivoException(mensaje(respuesta.body()));
+                default: throw new ServicioNoDisponibleException(
+                        "Respuesta inesperada del servidor: " + respuesta.statusCode());
+            }
+        } catch (RuntimeException e) {
+            if (e instanceof ServicioNoDisponibleException) throw e;
+            throw new ServicioNoDisponibleException("Respuesta del servidor no válida", e);
+        }
+    }
+
+    @Override
     public Paciente modificar(Usuario solicitante, long id, Paciente datos) {
         throw new ServicioNoDisponibleException("La modificación todavía no está conectada al servidor");
     }
