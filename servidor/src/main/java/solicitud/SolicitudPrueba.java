@@ -22,13 +22,36 @@ public class SolicitudPrueba {
     private final LocalDateTime fechaSolicitud;
     private final EstadoSolicitud estado;
 
-    //Constructor
+    // CU12 (D-030): periodicidad del seguimiento; todos nulos si no es un seguimiento
+    private final Integer intervalo;
+    private final UnidadPeriodicidad unidad;
+    private final Integer numeroRepeticiones;
+    private final Long solicitudOrigenId;
+
+    //Constructor de CU11: una solicitud sin periodicidad
     public SolicitudPrueba(long id, long pacienteId,
             long medicoId, long tipoPruebaId,
             String indicacionClinica, String justificacion,
             Prioridad prioridad, LocalDateTime fechaSolicitud,
             EstadoSolicitud estado) {
 
+        this(id, pacienteId, medicoId, tipoPruebaId, indicacionClinica, justificacion,
+                prioridad, fechaSolicitud, estado, null, null, null, null);
+    }
+
+    //Constructor de CU12: una prueba de seguimiento con su periodicidad
+    public SolicitudPrueba(long id, long pacienteId,
+            long medicoId, long tipoPruebaId,
+            String indicacionClinica, String justificacion,
+            Prioridad prioridad, LocalDateTime fechaSolicitud,
+            EstadoSolicitud estado,
+            Integer intervalo, UnidadPeriodicidad unidad,
+            Integer numeroRepeticiones, Long solicitudOrigenId) {
+
+        this.intervalo = intervalo;
+        this.unidad = unidad;
+        this.numeroRepeticiones = numeroRepeticiones;
+        this.solicitudOrigenId = solicitudOrigenId;
         this.id = id;
         this.pacienteId = pacienteId;
         this.medicoId = medicoId;
@@ -76,6 +99,27 @@ public class SolicitudPrueba {
         return estado;
     }
 
+    public Integer getIntervalo() {
+        return intervalo;
+    }
+
+    public UnidadPeriodicidad getUnidad() {
+        return unidad;
+    }
+
+    public Integer getNumeroRepeticiones() {
+        return numeroRepeticiones;
+    }
+
+    public Long getSolicitudOrigenId() {
+        return solicitudOrigenId;
+    }
+
+    //Una solicitud es un seguimiento si tiene periodicidad
+    public boolean esSeguimiento() {
+        return intervalo != null;
+    }
+
     //Devuelve una copia de la solicitud con otro id
     public SolicitudPrueba conId(long nuevoId) {
         return new SolicitudPrueba(
@@ -87,7 +131,11 @@ public class SolicitudPrueba {
             justificacion,
             prioridad,
             fechaSolicitud,
-            estado
+            estado,
+            intervalo,
+            unidad,
+            numeroRepeticiones,
+            solicitudOrigenId
         );
     }
 }

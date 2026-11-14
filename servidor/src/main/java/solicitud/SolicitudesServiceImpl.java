@@ -108,6 +108,9 @@ public class SolicitudesServiceImpl implements SolicitudesService {
                 "Falta la prioridad");
         }
 
+        //CU12: comprobar el formato de la periodicidad, si la hay
+        validarPeriodicidad(datos);
+
         //3. Comprobar el paciente
         Paciente paciente = pacientes.buscarPorId(
                 datos.getPacienteId()).orElseThrow(
@@ -130,6 +133,20 @@ public class SolicitudesServiceImpl implements SolicitudesService {
                 "El tipo de prueba esta dado de baja");
         }
 
+        //CU12: la prescripcion original, si se indica, debe existir y ser del mismo paciente
+        if (datos.getSolicitudOrigenId() != null) {
+
+            SolicitudPrueba origen = solicitudes.buscarPorId(
+                    datos.getSolicitudOrigenId()).orElseThrow(
+                    () -> new NoSuchElementException(
+                        "Prescripcion original no encontrada"));
+
+            if (origen.getPacienteId() != datos.getPacienteId()) {
+                throw new IllegalArgumentException(
+                    "La prescripcion original es de otro paciente");
+            }
+        }
+
         //5. Crear la solicitud
         SolicitudPrueba nueva = new SolicitudPrueba(
                 0,
@@ -140,10 +157,45 @@ public class SolicitudesServiceImpl implements SolicitudesService {
                 datos.getJustificacion().trim(),
                 datos.getPrioridad(),
                 LocalDateTime.now(),
-                EstadoSolicitud.PENDIENTE_CITACION
+                EstadoSolicitud.PENDIENTE_CITACION,
+                datos.getIntervalo(),
+                datos.getUnidad(),
+                datos.getNumeroRepeticiones(),
+                datos.getSolicitudOrigenId()
         );
 
         //6. Guardar y devolver la solicitud
         return solicitudes.guardar(nueva);
+    }
+
+    //CU12 (D-030): la periodicidad se informa completa o no se informa; intervalo y repeticiones mayores que 0
+    private static void validarPeriodicidad(SolicitudPrueba datos) {
+
+        boolean algunDato = datos.getIntervalo() != null
+                || datos.getUnidad() != null
+                || datos.getNumeroRepeticiones() != null;
+
+        if (algunDato && (datos.getIntervalo() == null
+                || datos.getUnidad() == null
+                || datos.getNumeroRepeticiones() == null)) {
+            throw new IllegalArgumentException(
+                "La periodicidad esta incompleta");
+        }
+
+        if (algunDato && datos.getIntervalo() < 1) {
+            throw new IllegalArgumentException(
+                "El intervalo debe ser mayor que 0");
+        }
+
+        if (algunDato && datos.getNumeroRepeticiones() < 1) {
+            throw new IllegalArgumentException(
+                "El numero de repeticiones debe ser mayor que 0");
+        }
+
+        if (datos.getSolicitudOrigenId() != null
+                && datos.getSolicitudOrigenId() <= 0) {
+            throw new IllegalArgumentException(
+                "La prescripcion original debe tener un identificador positivo");
+        }
     }
 }
