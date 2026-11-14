@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.BorderFactory;
+import javax.swing.JCheckBox;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -45,6 +46,15 @@ public class PantallaPrescribirPrueba extends JFrame {
     private final JComboBox<Prioridad> prioridades =
             new JComboBox<>(Prioridad.values());
 
+    //CU12: datos opcionales de la prueba de seguimiento
+    private final JCheckBox seguimiento =
+            new JCheckBox("Prueba de seguimiento");
+    private final JTextField intervalo = new JTextField(20);
+    private final JComboBox<UnidadPeriodicidad> unidades =
+            new JComboBox<>(UnidadPeriodicidad.values());
+    private final JTextField repeticiones = new JTextField(20);
+    private final JTextField solicitudOrigen = new JTextField(20);
+
     private final JButton guardar =
             new JButton("Registrar prescripcion");
 
@@ -58,7 +68,7 @@ public class PantallaPrescribirPrueba extends JFrame {
             SolicitudesService servicio,
             Usuario medico) {
 
-        super("CU11 - Prescribir prueba diagnostica");
+        super("CU11 y CU12 - Prescribir prueba diagnostica o de seguimiento");
 
         this.servicio = servicio;
         this.medico = medico;
@@ -98,6 +108,24 @@ public class PantallaPrescribirPrueba extends JFrame {
 
         formulario.add(new JLabel("Prioridad *"));
         formulario.add(prioridades);
+
+        formulario.add(new JLabel("Seguimiento"));
+        formulario.add(seguimiento);
+
+        formulario.add(new JLabel("Intervalo entre pruebas *"));
+        formulario.add(intervalo);
+
+        formulario.add(new JLabel("Unidad *"));
+        formulario.add(unidades);
+
+        formulario.add(new JLabel("Numero de repeticiones *"));
+        formulario.add(repeticiones);
+
+        formulario.add(new JLabel("ID de la prescripcion original"));
+        formulario.add(solicitudOrigen);
+
+        seguimiento.addActionListener(e -> habilitarSeguimiento());
+        habilitarSeguimiento();
 
         //Mostrar el nombre de los tipos de prueba
         tipos.setRenderer(new DefaultListCellRenderer() {
@@ -154,7 +182,7 @@ public class PantallaPrescribirPrueba extends JFrame {
         add(principal);
 
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setSize(650, 480);
+        setSize(650, 620);
         setLocationRelativeTo(null);
 
         //Cargar los tipos al abrir la ventana
@@ -265,6 +293,33 @@ public class PantallaPrescribirPrueba extends JFrame {
             return;
         }
 
+        //CU12: si es un seguimiento, se valida el formato de la periodicidad
+        Integer idIntervalo = null;
+        UnidadPeriodicidad unidad = null;
+        Integer numRepeticiones = null;
+        Long idOrigen = null;
+
+        if (seguimiento.isSelected()) {
+
+            unidad = (UnidadPeriodicidad) unidades.getSelectedItem();
+
+            List<String> errores = ValidadorSeguimiento.validar(
+                    intervalo.getText(), unidad,
+                    repeticiones.getText(), solicitudOrigen.getText());
+
+            if (!errores.isEmpty()) {
+                error(String.join("\n", errores));
+                return;
+            }
+
+            idIntervalo = Integer.valueOf(intervalo.getText().trim());
+            numRepeticiones = Integer.valueOf(repeticiones.getText().trim());
+
+            if (!solicitudOrigen.getText().isBlank()) {
+                idOrigen = Long.valueOf(solicitudOrigen.getText().trim());
+            }
+        }
+
         // Preparar la solicitud. El servidor asigna id, fecha y estado inicial.
         SolicitudPrueba datos = new SolicitudPrueba(
                 0,
@@ -275,7 +330,11 @@ public class PantallaPrescribirPrueba extends JFrame {
                 textoJustificacion,
                 prioridad,
                 null,
-                null
+                null,
+                idIntervalo,
+                unidad,
+                numRepeticiones,
+                idOrigen
         );
 
         guardar.setEnabled(false);
@@ -307,7 +366,8 @@ public class PantallaPrescribirPrueba extends JFrame {
                             + "\n\nID: " + creada.getId()
                             + "\nPaciente: " + creada.getPacienteId()
                             + "\nPrioridad: " + creada.getPrioridad()
-                            + "\nEstado: " + creada.getEstado(),
+                            + "\nEstado: " + creada.getEstado()
+                            + descripcionSeguimiento(creada),
                             "Prescripcion registrada",
                             JOptionPane.INFORMATION_MESSAGE
                     );
@@ -350,7 +410,38 @@ public class PantallaPrescribirPrueba extends JFrame {
         }
     }
 
+    //Activa los campos de periodicidad solo si se marca el seguimiento
+    private void habilitarSeguimiento() {
+
+        boolean activo = seguimiento.isSelected();
+
+        intervalo.setEnabled(activo);
+        unidades.setEnabled(activo);
+        repeticiones.setEnabled(activo);
+        solicitudOrigen.setEnabled(activo);
+    }
+
+    //Texto con la periodicidad para la confirmacion; vacio si no es un seguimiento
+    private static String descripcionSeguimiento(SolicitudPrueba solicitud) {
+
+        if (!solicitud.esSeguimiento()) {
+            return "";
+        }
+
+        return "\nSeguimiento: cada " + solicitud.getIntervalo()
+                + " " + solicitud.getUnidad()
+                + ", " + solicitud.getNumeroRepeticiones()
+                + " repeticiones";
+    }
+
     private void limpiarFormulario() {
+
+        seguimiento.setSelected(false);
+        intervalo.setText("");
+        repeticiones.setText("");
+        solicitudOrigen.setText("");
+        unidades.setSelectedItem(UnidadPeriodicidad.DIAS);
+        habilitarSeguimiento();
 
         pacienteId.setText("");
         indicacion.setText("");
