@@ -4,6 +4,14 @@
 <artifactId>radiodiagnostico</artifactId>
 <version>0.1.0-SNAPSHOT</version>
 <packaging>pom</packaging>
+<!-- pom.xml padre, junto a ‹name› -->
+<url>https://example.org/radiodiagnostico</url>
+<distributionManagement>
+    <site>
+        <id>local</id>
+        <url>file:///tmp/radiodiagnostico-sitio</url>
+    </site>
+</distributionManagement>
 <modules>
 <module>servidor</module>
 <module>cliente</module>
@@ -24,4 +32,63 @@
 <version>2.11.0</version>
 </dependency>
 </dependencies></dependencyManagement>
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>3.5.6</version>
+        </plugin>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-site-plugin</artifactId>
+            <version>3.22.0</version>
+        </plugin>
+        <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <version>0.8.16</version>
+            <executions>
+                <execution><id>preparar</id>
+                    <goals><goal>prepare-agent</goal></goals></execution>
+                <execution><id>informe</id>
+                    <goals><goal>report</goal></goals></execution>
+                <execution><id>comprobar</id><goals><goal>check</goal></goals>
+                    <configuration>
+                        <haltOnFailure>false</haltOnFailure>
+                        <rules><rule><element>BUNDLE</element><limits><limit>
+                            <counter>LINE</counter><value>COVEREDRATIO</value>
+                            <minimum>0.75</minimum>
+                        </limit></limits></rule></rules>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
+<reporting>
+  <plugins>
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-project-info-reports-plugin</artifactId>
+      <version>3.9.0</version>
+    </plugin>
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-surefire-report-plugin</artifactId>
+      <version>3.5.6</version>
+    </plugin>
+    <plugin>
+      <groupId>org.jacoco</groupId>
+      <artifactId>jacoco-maven-plugin</artifactId>
+      <reportSets>
+        <reportSet>
+          <reports>
+            <report>report</report>
+          </reports>
+        </reportSet>
+      </reportSets>
+    </plugin>
+  </plugins>
+</reporting>
 </project>
