@@ -81,6 +81,33 @@ class PantallaPrescribirPruebaConstruccionTest {
 
                         return null;
                     }
+
+                    //CU13: operaciones de gestion; esta pantalla no las usa
+                    @Override
+                    public List<SolicitudPrueba> consultarSolicitudes(
+                            Usuario usuario,
+                            FiltroSolicitudes filtro) {
+
+                        return List.of();
+                    }
+
+                    @Override
+                    public SolicitudPrueba modificarSolicitud(
+                            Usuario usuario,
+                            long id,
+                            DatosModificacionSolicitud datos) {
+
+                        return null;
+                    }
+
+                    @Override
+                    public SolicitudPrueba anularSolicitud(
+                            Usuario usuario,
+                            long id,
+                            String motivo) {
+
+                        return null;
+                    }
                 };
 
         SwingUtilities.invokeAndWait(() -> {

@@ -27,6 +27,10 @@ public class SolicitudPrueba {
     private final Integer numeroRepeticiones;
     private final Long solicitudOrigenId;
 
+    // CU13: datos de la anulacion; nulos si la solicitud no esta anulada
+    private final String motivoAnulacion;
+    private final LocalDateTime fechaAnulacion;
+
     //Constructor de CU11: una solicitud sin periodicidad
     public SolicitudPrueba(long id, long pacienteId,
             long medicoId, long tipoPruebaId,
@@ -47,6 +51,23 @@ public class SolicitudPrueba {
             Integer intervalo, UnidadPeriodicidad unidad,
             Integer numeroRepeticiones, Long solicitudOrigenId) {
 
+        this(id, pacienteId, medicoId, tipoPruebaId, indicacionClinica, justificacion,
+                prioridad, fechaSolicitud, estado, intervalo, unidad,
+                numeroRepeticiones, solicitudOrigenId, null, null);
+    }
+
+    //Constructor de CU13: incluye los datos de la anulacion
+    public SolicitudPrueba(long id, long pacienteId,
+            long medicoId, long tipoPruebaId,
+            String indicacionClinica, String justificacion,
+            Prioridad prioridad, LocalDateTime fechaSolicitud,
+            EstadoSolicitud estado,
+            Integer intervalo, UnidadPeriodicidad unidad,
+            Integer numeroRepeticiones, Long solicitudOrigenId,
+            String motivoAnulacion, LocalDateTime fechaAnulacion) {
+
+        this.motivoAnulacion = motivoAnulacion;
+        this.fechaAnulacion = fechaAnulacion;
         this.intervalo = intervalo;
         this.unidad = unidad;
         this.numeroRepeticiones = numeroRepeticiones;
@@ -116,8 +137,21 @@ public class SolicitudPrueba {
         return solicitudOrigenId;
     }
 
+    public String getMotivoAnulacion() {
+        return motivoAnulacion;
+    }
+
+    public LocalDateTime getFechaAnulacion() {
+        return fechaAnulacion;
+    }
+
     //Una solicitud es un seguimiento si tiene periodicidad
     public boolean esSeguimiento() {
         return intervalo != null;
+    }
+
+    //CU13: el medico solo puede modificar o anular una solicitud pendiente de citacion
+    public boolean sePuedeGestionar() {
+        return estado != null && estado.permiteGestion();
     }
 }
