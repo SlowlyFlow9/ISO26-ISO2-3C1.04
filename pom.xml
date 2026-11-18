@@ -2,7 +2,7 @@
 <modelVersion>4.0.0</modelVersion>
 <groupId>es.uclm.esi.iso2-3C1.04</groupId>
 <artifactId>radiodiagnostico</artifactId>
-<version>0.3.0</version>
+<version>0.4.0-SNAPSHOT</version>
 <packaging>pom</packaging>
 <!-- pom.xml padre, junto a ‹name› -->
 <url>https://example.org/radiodiagnostico</url>
