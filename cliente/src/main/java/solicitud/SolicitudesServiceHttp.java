@@ -8,6 +8,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import com.google.gson.Gson;
@@ -97,6 +98,26 @@ public class SolicitudesServiceHttp implements SolicitudesService {
                     "Peticion interrumpida", e);
         }
     }
+
+//CU13: comprueba la respuesta con mensajes propios para 404 y 409
+private void comprobarRespuesta(
+        HttpResponse<String> respuesta,
+        int codigoEsperado,
+        String mensaje404,
+        String mensaje409) {
+
+    int codigo = respuesta.statusCode();
+
+    if (codigo == 404) {
+        throw new NoSuchElementException(mensaje404);
+    }
+
+    if (codigo == 409) {
+        throw new IllegalStateException(mensaje409);
+    }
+
+    comprobarRespuesta(respuesta, codigoEsperado);
+}
 
 //Comprueba el codigo HTTP recibido y lanza excepciones si no es el esperado
 private void comprobarRespuesta(
@@ -220,6 +241,118 @@ private void comprobarRespuesta(
         } catch (RuntimeException e) {
             throw new ServicioNoDisponibleException(
                     "Respuesta de consulta no valida", e);
+        }
+    }
+
+    // ---- CU13: gestion de solicitudes (D-033) ----
+
+    private static final String NO_ENCONTRADA =
+            "No se ha encontrado la solicitud.";
+
+    private static final String NO_GESTIONABLE =
+            "La solicitud ya no esta pendiente de citacion, "
+            + "por lo que no se puede modificar ni anular.";
+
+    //Consulta las solicitudes que cumplen el filtro
+    @Override
+    public List<SolicitudPrueba> consultarSolicitudes(
+            Usuario medico, FiltroSolicitudes filtro) {
+
+        FiltroSolicitudes criterios = filtro == null
+                ? FiltroSolicitudes.vacio()
+                : filtro;
+
+        HttpRequest peticion =
+                prepararPeticion(
+                        medico, "/solicitudes" + criterios.comoParametros())
+                .GET()
+                .build();
+
+        HttpResponse<String> respuesta = enviar(peticion);
+
+        comprobarRespuesta(respuesta, 200);
+
+        try {
+            List<SolicitudPrueba> solicitudes = GSON.fromJson(
+                    respuesta.body(),
+                    new TypeToken<List<SolicitudPrueba>>() {}
+                            .getType());
+
+            return solicitudes == null ? List.of() : solicitudes;
+
+        } catch (RuntimeException e) {
+            throw new ServicioNoDisponibleException(
+                    "Respuesta del listado de solicitudes no valida", e);
+        }
+    }
+
+    //Modifica los datos clinicos de una solicitud
+    @Override
+    public SolicitudPrueba modificarSolicitud(
+            Usuario medico, long id,
+            DatosModificacionSolicitud datos) {
+
+        if (datos == null) {
+            throw new IllegalArgumentException(
+                    "Faltan los datos de la modificacion");
+        }
+
+        HttpRequest peticion =
+                prepararPeticion(
+                        medico, "/solicitudes/" + id)
+                .header("Content-Type", "application/json")
+                .PUT(
+                    HttpRequest.BodyPublishers.ofString(
+                            GSON.toJson(datos)))
+                .build();
+
+        HttpResponse<String> respuesta = enviar(peticion);
+
+        comprobarRespuesta(respuesta, 200,
+                NO_ENCONTRADA, NO_GESTIONABLE);
+
+        return leerSolicitud(respuesta,
+                "Respuesta de la modificacion no valida");
+    }
+
+    //Anula una solicitud indicando el motivo
+    @Override
+    public SolicitudPrueba anularSolicitud(
+            Usuario medico, long id, String motivo) {
+
+        if (motivo == null || motivo.isBlank()) {
+            throw new IllegalArgumentException(
+                    "El motivo de la anulacion es obligatorio");
+        }
+
+        HttpRequest peticion =
+                prepararPeticion(
+                        medico, "/solicitudes/" + id + "/anulacion")
+                .header("Content-Type", "application/json")
+                .POST(
+                    HttpRequest.BodyPublishers.ofString(
+                            GSON.toJson(Map.of("motivo", motivo.trim()))))
+                .build();
+
+        HttpResponse<String> respuesta = enviar(peticion);
+
+        comprobarRespuesta(respuesta, 200,
+                NO_ENCONTRADA, NO_GESTIONABLE);
+
+        return leerSolicitud(respuesta,
+                "Respuesta de la anulacion no valida");
+    }
+
+    //Convierte el cuerpo de la respuesta en una solicitud
+    private SolicitudPrueba leerSolicitud(
+            HttpResponse<String> respuesta, String mensajeError) {
+
+        try {
+            return GSON.fromJson(
+                    respuesta.body(), SolicitudPrueba.class);
+
+        } catch (RuntimeException e) {
+            throw new ServicioNoDisponibleException(mensajeError, e);
         }
     }
 }
