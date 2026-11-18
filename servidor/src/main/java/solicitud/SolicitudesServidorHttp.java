@@ -2,6 +2,7 @@ package solicitud;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.DateTimeException;
@@ -13,6 +14,7 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
@@ -25,7 +27,10 @@ import paciente.Rol;
 import paciente.SinPermisoException;
 import paciente.Usuario;
 
-/** Comunicacion HTTP del CU11. Utiliza JSON siguiendo D-022. */
+/**
+ * Comunicacion HTTP de CU11, CU12 y CU13. Utiliza JSON siguiendo D-022.
+ * CU13 (D-033): GET /solicitudes con filtros, PUT /solicitudes/{id} y POST /solicitudes/{id}/anulacion.
+ */
 public class SolicitudesServidorHttp {
 
     // Adaptador para fechas en formato JSON
@@ -87,6 +92,11 @@ public class SolicitudesServidorHttp {
                 responder(exchange, 404,
                         error("NO_ENCONTRADO"));
 
+            } catch (SolicitudNoGestionableException e) {
+                //CU13: la solicitud ya no esta pendiente de citacion (D-033)
+                responder(exchange, 409,
+                        error("ESTADO_NO_PERMITIDO"));
+
             } catch (IllegalArgumentException
                     | JsonParseException e) {
                 responder(exchange, 400,
@@ -126,6 +136,59 @@ public class SolicitudesServidorHttp {
             responder(exchange, 200,
                     GSON.toJson(
                             servicio.consultarTiposPrueba()));
+            return;
+        }
+
+        // CU13: listar solicitudes con filtros (GET /solicitudes?pacienteId=&estado=&prioridad=)
+        if (ruta.equals("/solicitudes") && metodo.equals("GET")) {
+
+            FiltroSolicitudes filtro = leerFiltro(
+                    exchange.getRequestURI().getRawQuery());
+
+            responder(exchange, 200,
+                    GSON.toJson(servicio.consultarSolicitudes(
+                            usuario(exchange), filtro)));
+            return;
+        }
+
+        // CU13: anular una solicitud (POST /solicitudes/{id}/anulacion)
+        if (ruta.startsWith("/solicitudes/")
+                && ruta.endsWith("/anulacion")) {
+
+            if (!metodo.equals("POST")) {
+                responder(exchange, 405,
+                        error("METODO_NO_PERMITIDO"));
+                return;
+            }
+
+            long id = Long.parseLong(ruta.substring(
+                    "/solicitudes/".length(),
+                    ruta.length() - "/anulacion".length()));
+
+            SolicitudPrueba anulada = servicio.anularSolicitud(
+                    usuario(exchange), id,
+                    leerMotivo(leerCuerpo(exchange)));
+
+            responder(exchange, 200,
+                    GSON.toJson(anulada));
+            return;
+        }
+
+        // CU13: modificar una solicitud (PUT /solicitudes/{id})
+        if (ruta.startsWith("/solicitudes/") && metodo.equals("PUT")) {
+
+            long id = Long.parseLong(ruta.substring(
+                    "/solicitudes/".length()));
+
+            DatosModificacionSolicitud datos = GSON.fromJson(
+                    leerCuerpo(exchange),
+                    DatosModificacionSolicitud.class);
+
+            SolicitudPrueba modificada = servicio.modificarSolicitud(
+                    usuario(exchange), id, datos);
+
+            responder(exchange, 200,
+                    GSON.toJson(modificada));
             return;
         }
 
@@ -219,6 +282,74 @@ public class SolicitudesServidorHttp {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    //CU13: lee los filtros opcionales de la consulta; un valor no valido produce un 400
+    static FiltroSolicitudes leerFiltro(String consulta) {
+
+        Long pacienteId = null;
+        EstadoSolicitud estado = null;
+        Prioridad prioridad = null;
+
+        if (consulta == null || consulta.isBlank()) {
+            return FiltroSolicitudes.vacio();
+        }
+
+        for (String parametro : consulta.split("&")) {
+
+            int igual = parametro.indexOf('=');
+            if (igual < 0) {
+                continue;
+            }
+
+            String nombre = URLDecoder.decode(
+                    parametro.substring(0, igual), StandardCharsets.UTF_8);
+            String valor = URLDecoder.decode(
+                    parametro.substring(igual + 1), StandardCharsets.UTF_8).trim();
+
+            if (valor.isEmpty()) {
+                continue;
+            }
+
+            switch (nombre) {
+                case "pacienteId" -> {
+                    pacienteId = Long.parseLong(valor);
+                    if (pacienteId <= 0) {
+                        throw new IllegalArgumentException(
+                            "El paciente debe ser un identificador positivo");
+                    }
+                }
+                case "estado" -> estado = EstadoSolicitud.valueOf(valor);
+                case "prioridad" -> prioridad = Prioridad.valueOf(valor);
+                default -> { }
+            }
+        }
+
+        return new FiltroSolicitudes(pacienteId, estado, prioridad);
+    }
+
+    //CU13: lee el motivo de la anulacion del cuerpo {"motivo": "..."}
+    private static String leerMotivo(String cuerpo) {
+
+        JsonElement json = JsonParser.parseString(cuerpo);
+
+        if (!json.isJsonObject()
+                || !json.getAsJsonObject().has("motivo")
+                || !json.getAsJsonObject().get("motivo").isJsonPrimitive()) {
+            throw new IllegalArgumentException(
+                "Falta el motivo de la anulacion");
+        }
+
+        return json.getAsJsonObject().get("motivo").getAsString();
+    }
+
+    //Lee el cuerpo de la peticion como texto
+    private static String leerCuerpo(
+            HttpExchange exchange) throws IOException {
+
+        return new String(
+                exchange.getRequestBody().readAllBytes(),
+                StandardCharsets.UTF_8);
     }
 
      //Genera una respuesta de error en JSON.

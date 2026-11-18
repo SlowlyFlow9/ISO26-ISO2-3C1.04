@@ -1,6 +1,8 @@
 package solicitud;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -47,5 +49,10 @@ public class SolicitudesRepositorioMemoria implements SolicitudesRepositorio {
             long id) {
 
         return Optional.ofNullable(solicitudes.get(id));
+    }
+
+    @Override
+    public synchronized List<SolicitudPrueba> todas() {
+        return new ArrayList<>(solicitudes.values());
     }
 }
