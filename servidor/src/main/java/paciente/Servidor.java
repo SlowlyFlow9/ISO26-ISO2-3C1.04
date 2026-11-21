@@ -1,7 +1,17 @@
 package paciente;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalTime;
+
 import com.sun.net.httpserver.HttpServer;
+
+import agenda.AgendaMedica;
+import agenda.AgendasRepositorioMemoria;
+import agenda.HuecosAgendaRepositorioMemoria;
+import agenda.HuecosAgendaService;
+import agenda.HuecosAgendaServiceImpl;
+import agenda.HuecosAgendaServidorHttp;
 
 import solicitud.SolicitudesRepositorioMemoria;
 import solicitud.SolicitudesService;
@@ -11,7 +21,10 @@ import solicitud.SolicitudesServidorHttp;
 import tipoprueba.RepositorioTiposPruebaMemoria;
 import tipoprueba.TipoPrueba;
 
-/** Arranque del servidor: Servidor [puerto], por defecto 8080. Los datos se guardan en memoria (D-024). */
+/**
+ * Arranque del servidor compartido.
+ * Los datos se almacenan en memoria.
+ */
 public class Servidor {
 
     public static void main(String[] args) throws IOException {
@@ -19,7 +32,7 @@ public class Servidor {
         int puerto = args.length > 0
                 ? Integer.parseInt(args[0]) : 8080;
 
-        // 1. Crear los repositorios
+        // 1. Crear los repositorios existentes.
         PacientesRepositorioMemoria pacientes =
                 new PacientesRepositorioMemoria();
 
@@ -29,7 +42,14 @@ public class Servidor {
         SolicitudesRepositorioMemoria solicitudes =
                 new SolicitudesRepositorioMemoria();
 
-        // Datos opcionales para pruebas locales
+        // CU29: repositorios de agendas y huecos.
+        AgendasRepositorioMemoria agendas =
+                new AgendasRepositorioMemoria();
+
+        HuecosAgendaRepositorioMemoria huecos =
+                new HuecosAgendaRepositorioMemoria();
+
+        // 2. Datos opcionales para pruebas locales.
         if (args.length > 1 && args[1].equals("--demo")) {
 
             tipos.guardar(new TipoPrueba(
@@ -41,9 +61,23 @@ public class Servidor {
                     "",
                     true
             ));
+
+            // CU29: agenda de demostración.
+            AgendaMedica agendaDemo = new AgendaMedica();
+
+            agendaDemo.setMedicoId(1L);
+            agendaDemo.setFecha(LocalDate.now());
+            agendaDemo.setHoraInicio(LocalTime.of(8, 0));
+            agendaDemo.setHoraFin(LocalTime.of(14, 0));
+
+            agendas.guardar(agendaDemo);
+
+            System.out.println(
+                    "Agenda de demostracion creada: ID "
+                    + agendaDemo.getId());
         }
 
-        // 2. Crear los servicios
+        // 3. Crear los servicios.
         PacientesService servicioPacientes =
                 new PacientesServiceImpl(pacientes);
 
@@ -54,17 +88,30 @@ public class Servidor {
                         solicitudes
                 );
 
-        // 3. Arrancar el servidor HTTP de pacientes
+        // CU29: servicio de gestión de huecos.
+        HuecosAgendaService servicioHuecos =
+                new HuecosAgendaServiceImpl(
+                        agendas,
+                        huecos
+                );
+
+        // 4. Arrancar el servidor HTTP.
         HttpServer http =
                 PacientesServidorHttp.iniciar(
                         servicioPacientes,
                         puerto
                 );
 
-        // 4. Registrar las rutas HTTP de CU11
+        // Rutas HTTP de solicitudes.
         SolicitudesServidorHttp.registrar(
                 http,
                 servicioSolicitudes
+        );
+
+        // CU29: registrar rutas HTTP de huecos.
+        HuecosAgendaServidorHttp.registrar(
+                http,
+                servicioHuecos
         );
 
         System.out.println(
@@ -74,5 +121,6 @@ public class Servidor {
         System.out.println("/pacientes");
         System.out.println("/solicitudes");
         System.out.println("/solicitudes/tipos");
+        System.out.println("/huecos");
     }
 }
