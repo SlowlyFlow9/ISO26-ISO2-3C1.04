@@ -11,6 +11,10 @@ public class Cita {
     private LocalDateTime fechaHora;
     private EstadoCita estado;
 
+    // CU25: hueco de agenda y solicitud de la que nace la cita (nulos si no viene de CU25)
+    private Long huecoId;
+    private Long solicitudId;
+
     public Cita() {
     }
 
@@ -24,6 +28,8 @@ public class Cita {
         copia.tipoPruebaId = tipoPruebaId;
         copia.fechaHora = fechaHora;
         copia.estado = estado;
+        copia.huecoId = huecoId;
+        copia.solicitudId = solicitudId;
 
         return copia;
     }
@@ -74,5 +80,21 @@ public class Cita {
 
     public void setEstado(EstadoCita estado) {
         this.estado = estado;
+    }
+
+    public Long getHuecoId() {
+        return huecoId;
+    }
+
+    public void setHuecoId(Long huecoId) {
+        this.huecoId = huecoId;
+    }
+
+    public Long getSolicitudId() {
+        return solicitudId;
+    }
+
+    public void setSolicitudId(Long solicitudId) {
+        this.solicitudId = solicitudId;
     }
 }
