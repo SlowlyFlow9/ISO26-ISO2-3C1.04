@@ -192,4 +192,49 @@ public class SolicitudesServiceTest {
         assertTrue(
                 servicio.consultarSolicitud(999).isEmpty());
     }
+
+
+
+     //rechaza una solicitud nueva si el cliente intenta asignarle un identificador.
+     //El servidor debe generar dicho identificador.
+    @Test
+    public void rechazarSolicitudConIdAsignado() {
+
+        // PREPARAR: solicitud con un ID no permitido
+        SolicitudPrueba datos = datosValidos().conId(10);
+
+        // EJECUTAR: intentar registrar la solicitud
+        IllegalArgumentException excepcion = assertThrows(
+                IllegalArgumentException.class,
+                () -> servicio.crearSolicitud(medico(), datos)
+        );
+
+        // COMPROBAR: error esperado y repositorio vacío
+        assertEquals(
+                "Una solicitud nueva debe tener id 0",
+                excepcion.getMessage()
+        );
+
+        assertTrue(solicitudes.todas().isEmpty());
+    }
+
+     //comprueba que el servicio rechaza una solicitud nula sin almacenar ningún registro.
+    @Test
+    public void rechazarSolicitudNula() {
+
+        // EJECUTAR: intentar registrar datos nulos
+        IllegalArgumentException excepcion = assertThrows(
+                IllegalArgumentException.class,
+                () -> servicio.crearSolicitud(medico(), null)
+        );
+
+        // COMPROBAR: error esperado y repositorio vacío
+        assertEquals(
+                "La solicitud no puede estar vacia",
+                excepcion.getMessage()
+        );
+
+        assertTrue(solicitudes.todas().isEmpty());
+    }
+
 }

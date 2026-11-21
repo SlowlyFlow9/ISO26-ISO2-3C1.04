@@ -57,15 +57,25 @@ public class SolicitudesRepoTest {
 
     @Test
     public void buscarSolicitud() {
-        SolicitudesRepositorioMemoria repo =
-                new SolicitudesRepositorioMemoria();
+    // PREPARAR
+    SolicitudesRepositorioMemoria repo =
+            new SolicitudesRepositorioMemoria();
 
-        SolicitudPrueba guardada =
-                repo.guardar(crearSolicitud());
+    SolicitudPrueba guardada =
+            repo.guardar(crearSolicitud());
 
-        assertTrue(repo.buscarPorId(
-                guardada.getId()).isPresent());
-    }
+    //EJECUTAR
+    SolicitudPrueba encontrada =
+            repo.buscarPorId(guardada.getId())
+                .orElseThrow();
+
+    //COMPROBAR
+    assertEquals(guardada.getId(), encontrada.getId());
+    assertEquals("Dolor de rodilla",
+            encontrada.getIndicacionClinica());
+    assertEquals(Prioridad.PREFERENTE,
+            encontrada.getPrioridad());
+}
 
     @Test
     public void buscarInexistente() {
@@ -83,4 +93,59 @@ public class SolicitudesRepoTest {
         assertThrows(IllegalArgumentException.class,
                 () -> repo.guardar(null));
     }
+
+
+    @Test
+    public void rechazarIdentificadorNegativo() {
+
+    // PREPARAR: repositorio y solicitud con ID incorrecto
+    SolicitudesRepositorioMemoria repo =
+            new SolicitudesRepositorioMemoria();
+
+    SolicitudPrueba solicitud =
+            crearSolicitud().conId(-1);
+
+    // EJECUTAR: comprobar que se lanza la excepcion
+    IllegalArgumentException excepcion = assertThrows(
+            IllegalArgumentException.class,
+            () -> repo.guardar(solicitud)
+    );
+
+    // COMPROBAR: tipo de error y ausencia de cambios
+    assertEquals(
+            "El identificador no puede ser negativo",
+            excepcion.getMessage()
+    );
+
+    assertTrue(repo.buscarPorId(-1).isEmpty());
+
+    // Una solicitud valida debe conservar el primer ID
+    assertEquals(1, repo.guardar(crearSolicitud()).getId());
+}
+
+@Test
+public void respetarIdentificadorExistente() {
+
+    // PREPARAR
+    SolicitudesRepositorioMemoria repo =
+            new SolicitudesRepositorioMemoria();
+
+    SolicitudPrueba solicitud =
+            crearSolicitud().conId(10);
+
+    //EJECUTAR
+    repo.guardar(solicitud);
+
+    SolicitudPrueba siguiente =
+            repo.guardar(crearSolicitud());
+
+    //COMPROBAR
+    assertTrue(repo.buscarPorId(10).isPresent());
+
+    assertEquals(10,
+            repo.buscarPorId(10).orElseThrow().getId());
+
+    assertEquals(11, siguiente.getId());
+}
+
 }
