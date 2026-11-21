@@ -154,6 +154,27 @@ public class SolicitudPrueba {
         return estado != null && estado.permiteGestion();
     }
 
+    //CU25: devuelve una copia de la solicitud con otro estado (la solicitud es inmutable)
+    public SolicitudPrueba conEstado(EstadoSolicitud nuevoEstado) {
+        return new SolicitudPrueba(
+            id,
+            pacienteId,
+            medicoId,
+            tipoPruebaId,
+            indicacionClinica,
+            justificacion,
+            prioridad,
+            fechaSolicitud,
+            nuevoEstado,
+            intervalo,
+            unidad,
+            numeroRepeticiones,
+            solicitudOrigenId,
+            motivoAnulacion,
+            fechaAnulacion
+        );
+    }
+
     //Devuelve una copia de la solicitud con otro id
     public SolicitudPrueba conId(long nuevoId) {
         return new SolicitudPrueba(
