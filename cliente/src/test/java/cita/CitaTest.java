@@ -102,4 +102,18 @@ class CitaTest {
                 EstadoCita.PROGRAMADA,
                 original.getEstado());
     }
+
+    @Test
+    @DisplayName("La copia de una cita conserva el hueco y la solicitud (CU25)")
+    void copiaConservaHuecoYSolicitud() {
+
+        Cita original = new Cita();
+        original.setHuecoId(5L);
+        original.setSolicitudId(8L);
+
+        Cita copia = original.copia();
+
+        assertEquals(5L, copia.getHuecoId());
+        assertEquals(8L, copia.getSolicitudId());
+    }
 }
