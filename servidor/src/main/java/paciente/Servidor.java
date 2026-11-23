@@ -29,6 +29,10 @@ import cita.CitasServidorHttp;
 
 import cita.Cita;
 import cita.EstadoCita;
+import cita.PoliticaCitaRepositorioMemoria;
+import cita.PoliticaCitaService;
+import cita.PoliticaCitaServiceImpl;
+import cita.PoliticasCitaServidorHttp;
 
 /**
  * Arranque del servidor compartido.
@@ -57,6 +61,10 @@ public class Servidor {
 
         IdentidadPacienteMemoria identidadPaciente =
                 new IdentidadPacienteMemoria();
+
+        // CU36: repositorio de politicas de citacion.
+        PoliticaCitaRepositorioMemoria politicaCita =
+                new PoliticaCitaRepositorioMemoria();
 
         // CU29: repositorios de agendas y huecos.
         AgendasRepositorioMemoria agendas =
@@ -161,6 +169,9 @@ public class Servidor {
                         huecos
                 );
 
+        PoliticaCitaService servicioPoliticaCita =
+                new PoliticaCitaServiceImpl(politicaCita);
+
         // 4. Arrancar el servidor HTTP.
         HttpServer http =
                 PacientesServidorHttp.iniciar(
@@ -186,6 +197,12 @@ public class Servidor {
                 servicioCitas
         );
 
+        // CU36: registrar la configuracion de politicas de citacion.
+        PoliticasCitaServidorHttp.registrar(
+                http,
+                servicioPoliticaCita
+        );
+
         System.out.println(
                 "Servidor escuchando en http://localhost:" + puerto);
 
@@ -197,5 +214,6 @@ public class Servidor {
         System.out.println("/citas");
         System.out.println("/citas/{id}");
         System.out.println("/citas/{id}/confirmar");
+        System.out.println("/politicas-citacion");
     }
 }
