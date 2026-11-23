@@ -10,7 +10,7 @@ public enum EstadoSolicitud {
     //Estado inicial: la solicitud existe pero no tiene cita (D-026)
     PENDIENTE_CITACION,
 
-    //La solicitud tiene cita asignada (lo asignan CU25 y CU27)
+    //La solicitud tiene cita asignada (lo asigna CU25)
     CITADA,
 
     //La prueba se ha realizado (lo asigna CU19)
