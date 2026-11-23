@@ -13,6 +13,8 @@ import agenda.HuecosAgendaService;
 import agenda.HuecosAgendaServiceImpl;
 import agenda.HuecosAgendaServidorHttp;
 
+import solicitud.ListaEsperaService;
+import solicitud.ListaEsperaServiceImpl;
 import solicitud.SolicitudesRepositorioMemoria;
 import solicitud.SolicitudesService;
 import solicitud.SolicitudesServiceImpl;
@@ -88,6 +90,9 @@ public class Servidor {
                         solicitudes
                 );
 
+        ListaEsperaService servicioListaEspera =
+                new ListaEsperaServiceImpl(solicitudes);
+
         // CU29: servicio de gestión de huecos.
         HuecosAgendaService servicioHuecos =
                 new HuecosAgendaServiceImpl(
@@ -108,6 +113,11 @@ public class Servidor {
                 servicioSolicitudes
         );
 
+        SolicitudesServidorHttp.registrarListaEspera(
+                http,
+                servicioListaEspera
+        );
+
         // CU29: registrar rutas HTTP de huecos.
         HuecosAgendaServidorHttp.registrar(
                 http,
@@ -121,6 +131,7 @@ public class Servidor {
         System.out.println("/pacientes");
         System.out.println("/solicitudes");
         System.out.println("/solicitudes/tipos");
+        System.out.println("/listas-espera");
         System.out.println("/huecos");
     }
 }

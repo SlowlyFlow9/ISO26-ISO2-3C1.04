@@ -28,7 +28,7 @@ import paciente.SinPermisoException;
 import paciente.Usuario;
 
 /**
- * Comunicacion HTTP de CU11, CU12 y CU13. Utiliza JSON siguiendo D-022.
+ * Comunicacion HTTP de CU11, CU12, CU13 y CU27. Utiliza JSON siguiendo D-022.
  * CU13 (D-033): GET /solicitudes con filtros, PUT /solicitudes/{id} y POST /solicitudes/{id}/anulacion.
  */
 public class SolicitudesServidorHttp {
@@ -105,6 +105,45 @@ public class SolicitudesServidorHttp {
             } catch (RuntimeException e) {
                 responder(exchange, 500,
                         error("ERROR_INTERNO"));
+            }
+        });
+    }
+
+    //Registra la consulta de la lista de espera de CU27.
+    public static void registrarListaEspera(
+            HttpServer servidor,
+            ListaEsperaService servicio) {
+
+        servidor.createContext("/listas-espera", exchange -> {
+
+            try {
+                if (!exchange.getRequestURI().getPath()
+                        .equals("/listas-espera")) {
+                    responder(exchange, 404, error("NO_ENCONTRADO"));
+                    return;
+                }
+
+                if (!exchange.getRequestMethod().equals("GET")) {
+                    responder(exchange, 405,
+                            error("METODO_NO_PERMITIDO"));
+                    return;
+                }
+
+                Prioridad prioridad = leerPrioridadListaEspera(
+                        exchange.getRequestURI().getRawQuery());
+
+                responder(exchange, 200,
+                        GSON.toJson(servicio.consultar(
+                                usuario(exchange), prioridad)));
+
+            } catch (SinPermisoException e) {
+                responder(exchange, 403, error("SIN_PERMISO"));
+
+            } catch (IllegalArgumentException e) {
+                responder(exchange, 400, error("DATOS_INVALIDOS"));
+
+            } catch (RuntimeException e) {
+                responder(exchange, 500, error("ERROR_INTERNO"));
             }
         });
     }
@@ -326,6 +365,36 @@ public class SolicitudesServidorHttp {
         }
 
         return new FiltroSolicitudes(pacienteId, estado, prioridad);
+    }
+
+    //CU27: lee el filtro opcional de prioridad de la lista de espera.
+    private static Prioridad leerPrioridadListaEspera(String consulta) {
+
+        if (consulta == null || consulta.isBlank()) {
+            return null;
+        }
+
+        Prioridad prioridad = null;
+        for (String parametro : consulta.split("&")) {
+
+            int igual = parametro.indexOf('=');
+            if (igual < 0) {
+                continue;
+            }
+
+            String nombre = URLDecoder.decode(
+                    parametro.substring(0, igual),
+                    StandardCharsets.UTF_8);
+            String valor = URLDecoder.decode(
+                    parametro.substring(igual + 1),
+                    StandardCharsets.UTF_8).trim();
+
+            if (nombre.equals("prioridad") && !valor.isEmpty()) {
+                prioridad = Prioridad.valueOf(valor);
+            }
+        }
+
+        return prioridad;
     }
 
     //CU13: lee el motivo de la anulacion del cuerpo {"motivo": "..."}
