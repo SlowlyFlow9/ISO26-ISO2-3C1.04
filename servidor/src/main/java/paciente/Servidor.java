@@ -21,6 +21,15 @@ import solicitud.SolicitudesServidorHttp;
 import tipoprueba.RepositorioTiposPruebaMemoria;
 import tipoprueba.TipoPrueba;
 
+import cita.CitasRepositorioMemoria;
+import cita.IdentidadPacienteMemoria;
+import cita.CitasService;
+import cita.CitasServiceImpl;
+import cita.CitasServidorHttp;
+
+import cita.Cita;
+import cita.EstadoCita;
+
 /**
  * Arranque del servidor compartido.
  * Los datos se almacenan en memoria.
@@ -41,6 +50,13 @@ public class Servidor {
 
         SolicitudesRepositorioMemoria solicitudes =
                 new SolicitudesRepositorioMemoria();
+
+        // CU01 y CU02: repositorio compartido de citas.
+        CitasRepositorioMemoria citas =
+                new CitasRepositorioMemoria();
+
+        IdentidadPacienteMemoria identidadPaciente =
+                new IdentidadPacienteMemoria();
 
         // CU29: repositorios de agendas y huecos.
         AgendasRepositorioMemoria agendas =
@@ -75,9 +91,52 @@ public class Servidor {
             System.out.println(
                     "Agenda de demostracion creada: ID "
                     + agendaDemo.getId());
+
+
+            // CU02: paciente de demostracion.
+            Paciente pacienteDemo = new Paciente();
+
+            pacienteDemo.setNombre("Paciente");
+            pacienteDemo.setApellidos("Demo");
+            pacienteDemo.setDni("12345678Z");
+            pacienteDemo.setFechaNacimiento(
+                    LocalDate.of(2000, 1, 1));
+            pacienteDemo.setTelefono("600123456");
+            pacienteDemo.setActivo(true);
+            pacienteDemo.setFechaAlta(LocalDate.now());
+
+            pacientes.guardar(pacienteDemo);
+
+            // Vincular el usuario con su paciente.
+            identidadPaciente.vincular(
+                    "paciente-demo",
+                    pacienteDemo.getId());
+
+            // Crear una cita pendiente de confirmacion.
+            Cita citaDemo = new Cita();
+
+            citaDemo.setPacienteId(
+                    pacienteDemo.getId());
+            citaDemo.setMedicoId(1L);
+            citaDemo.setTipoPruebaId(1L);
+            citaDemo.setFechaHora(
+                    LocalDate.now()
+                            .plusDays(7)
+                            .atTime(10, 0));
+            citaDemo.setEstado(
+                    EstadoCita.PROGRAMADA);
+
+            citas.guardar(citaDemo);
+
+            System.out.println(
+                    "CU02 - Usuario: paciente-demo");
+            System.out.println(
+                    "CU02 - Cita de demostracion: ID "
+                    + citaDemo.getId());
+
         }
 
-        // 3. Crear los servicios.
+        // 3. Crear los servicios
         PacientesService servicioPacientes =
                 new PacientesServiceImpl(pacientes);
 
@@ -86,6 +145,13 @@ public class Servidor {
                         pacientes,
                         tipos,
                         solicitudes
+                );
+
+        // CU01 y CU02: consulta y confirmación de citas.
+        CitasService servicioCitas =
+                new CitasServiceImpl(
+                        citas,
+                        identidadPaciente
                 );
 
         // CU29: servicio de gestión de huecos.
@@ -114,6 +180,12 @@ public class Servidor {
                 servicioHuecos
         );
 
+        // CU01 y CU02: rutas HTTP de citas del paciente.
+        CitasServidorHttp.registrar(
+                http,
+                servicioCitas
+        );
+
         System.out.println(
                 "Servidor escuchando en http://localhost:" + puerto);
 
@@ -122,5 +194,8 @@ public class Servidor {
         System.out.println("/solicitudes");
         System.out.println("/solicitudes/tipos");
         System.out.println("/huecos");
+        System.out.println("/citas");
+        System.out.println("/citas/{id}");
+        System.out.println("/citas/{id}/confirmar");
     }
 }
