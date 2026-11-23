@@ -8,6 +8,8 @@ import com.sun.net.httpserver.HttpServer;
 
 import agenda.AgendaMedica;
 import agenda.AgendasRepositorioMemoria;
+import agenda.AgendasServiceImpl;
+import agenda.AgendasServidorHttp;
 import agenda.HuecosAgendaRepositorioMemoria;
 import agenda.HuecosAgendaService;
 import agenda.HuecosAgendaServiceImpl;
@@ -42,7 +44,7 @@ public class Servidor {
         SolicitudesRepositorioMemoria solicitudes =
                 new SolicitudesRepositorioMemoria();
 
-        // CU29: repositorios de agendas y huecos.
+        // CU14 y CU29: repositorios de agendas y huecos.
         AgendasRepositorioMemoria agendas =
                 new AgendasRepositorioMemoria();
 
@@ -62,7 +64,7 @@ public class Servidor {
                     true
             ));
 
-            // CU29: agenda de demostración.
+            // Agenda compartida de demostración para CU14 y CU29.
             AgendaMedica agendaDemo = new AgendaMedica();
 
             agendaDemo.setMedicoId(1L);
@@ -95,6 +97,9 @@ public class Servidor {
                         huecos
                 );
 
+        AgendasServiceImpl servicioAgendas =
+                new AgendasServiceImpl(agendas);
+
         // 4. Arrancar el servidor HTTP.
         HttpServer http =
                 PacientesServidorHttp.iniciar(
@@ -114,6 +119,11 @@ public class Servidor {
                 servicioHuecos
         );
 
+        AgendasServidorHttp.registrar(
+                http,
+                servicioAgendas
+        );
+
         System.out.println(
                 "Servidor escuchando en http://localhost:" + puerto);
 
@@ -122,5 +132,6 @@ public class Servidor {
         System.out.println("/solicitudes");
         System.out.println("/solicitudes/tipos");
         System.out.println("/huecos");
+        System.out.println("/agendas-realizacion");
     }
 }

@@ -500,4 +500,85 @@ class AgendasServiceSimuladoTest {
                         null,
                         null));
     }
+
+    @Test
+    @DisplayName(
+            "El médico crea, consulta y lista solo sus agendas")
+    void gestionarConsultaSoloAgendasPropias()
+            throws Exception {
+
+        Usuario medico1 = new Usuario(
+                "medico-1", Rol.MEDICO, 1L);
+        Usuario medico2 = new Usuario(
+                "medico-2", Rol.MEDICO, 2L);
+
+        AgendaMedica datos = valida();
+        datos.setMedicoId(2L);
+
+        AgendaMedica propia =
+                servicio.crearPropia(medico1, datos);
+        AgendaMedica ajena =
+                servicio.crearPropia(medico2, valida());
+
+        assertAll(
+                () -> assertEquals(1L, propia.getMedicoId()),
+                () -> assertEquals(
+                        1,
+                        servicio.listarPropias(medico1).size()),
+                () -> assertEquals(
+                        propia.getId(),
+                        servicio.consultarPropia(
+                                medico1, propia.getId()).getId()),
+                () -> assertThrows(
+                        SinPermisoException.class,
+                        () -> servicio.consultarPropia(
+                                medico1, ajena.getId()))
+        );
+    }
+
+    @Test
+    @DisplayName(
+            "El médico modifica y elimina su agenda sin transferirla")
+    void modificarYEliminarAgendaPropia()
+            throws Exception {
+
+        Usuario medico = new Usuario(
+                "medico-1", Rol.MEDICO, 1L);
+        AgendaMedica creada =
+                servicio.crearPropia(medico, valida());
+
+        AgendaMedica cambios = valida();
+        cambios.setMedicoId(2L);
+        cambios.setHoraInicio(LocalTime.of(9, 0));
+
+        AgendaMedica modificada =
+                servicio.modificarPropia(
+                        medico, creada.getId(), cambios);
+
+        servicio.eliminarPropia(medico, creada.getId());
+
+        AgendaMedica consultada =
+                servicio.consultarPropia(medico, creada.getId());
+
+        assertAll(
+                () -> assertEquals(1L, modificada.getMedicoId()),
+                () -> assertEquals(
+                        LocalTime.of(9, 0),
+                        modificada.getHoraInicio()),
+                () -> assertFalse(consultada.isActivo())
+        );
+    }
+
+    @Test
+    @DisplayName(
+            "El médico sin identificador no puede gestionar agendas")
+    void medicoSinIdNoPuedeGestionar() {
+
+        Usuario medico = new Usuario(
+                "medico", Rol.MEDICO);
+
+        assertThrows(
+                SinPermisoException.class,
+                () -> servicio.listarPropias(medico));
+    }
 }
