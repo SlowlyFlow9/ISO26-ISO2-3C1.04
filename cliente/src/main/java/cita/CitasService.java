@@ -18,4 +18,14 @@ public interface CitasService {
             throws SinPermisoException,
             PacienteNoVinculadoException,
             CitaNoEncontradaException;
+
+
+   //confirmar una cita propia programada
+   Cita confirmarMiCita(
+            Usuario solicitante,
+            long citaId)
+            throws SinPermisoException,
+            PacienteNoVinculadoException,
+            CitaNoEncontradaException,
+            CitaNoConfirmableException;
 }
