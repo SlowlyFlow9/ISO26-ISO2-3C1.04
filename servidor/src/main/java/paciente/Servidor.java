@@ -12,6 +12,10 @@ import agenda.HuecosAgendaRepositorioMemoria;
 import agenda.HuecosAgendaService;
 import agenda.HuecosAgendaServiceImpl;
 import agenda.HuecosAgendaServidorHttp;
+import agenda.HorarioServicioRepositorioMemoria;
+import agenda.HorarioServicioService;
+import agenda.HorarioServicioServiceImpl;
+import agenda.HorarioServicioServidorHttp;
 
 import solicitud.SolicitudesRepositorioMemoria;
 import solicitud.SolicitudesService;
@@ -64,6 +68,10 @@ public class Servidor {
 
         HuecosAgendaRepositorioMemoria huecos =
                 new HuecosAgendaRepositorioMemoria();
+
+        // CU35: configuracion del horario del servicio.
+        HorarioServicioRepositorioMemoria horario =
+                new HorarioServicioRepositorioMemoria();
 
         // 2. Datos opcionales para pruebas locales.
         if (args.length > 1 && args[1].equals("--demo")) {
@@ -161,6 +169,9 @@ public class Servidor {
                         huecos
                 );
 
+        HorarioServicioService servicioHorario =
+                new HorarioServicioServiceImpl(horario);
+
         // 4. Arrancar el servidor HTTP.
         HttpServer http =
                 PacientesServidorHttp.iniciar(
@@ -180,6 +191,12 @@ public class Servidor {
                 servicioHuecos
         );
 
+        // CU35: registrar la configuracion horaria.
+        HorarioServicioServidorHttp.registrar(
+                http,
+                servicioHorario
+        );
+
         // CU01 y CU02: rutas HTTP de citas del paciente.
         CitasServidorHttp.registrar(
                 http,
@@ -194,6 +211,7 @@ public class Servidor {
         System.out.println("/solicitudes");
         System.out.println("/solicitudes/tipos");
         System.out.println("/huecos");
+        System.out.println("/horarios-servicio");
         System.out.println("/citas");
         System.out.println("/citas/{id}");
         System.out.println("/citas/{id}/confirmar");
