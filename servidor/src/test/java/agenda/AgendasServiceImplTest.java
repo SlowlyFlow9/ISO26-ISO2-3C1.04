@@ -691,4 +691,166 @@ class AgendasServiceImplTest {
                         null,
                         null));
     }
+
+    @Test
+    @DisplayName(
+            "Un médico solo puede listar y consultar sus propias agendas")
+    void medicoSoloPuedeConsultarAgendasPropias()
+            throws Exception {
+
+        AgendaMedica propia =
+                servicio.crear(PERSONAL, valida());
+
+        AgendaMedica ajenaDatos = valida();
+        ajenaDatos.setMedicoId(2L);
+        AgendaMedica ajena =
+                servicio.crear(PERSONAL, ajenaDatos);
+
+        Usuario medico = new Usuario(
+                "medico-1", Rol.MEDICO, 1L);
+
+        var resultado = servicio.listarPropias(
+                medico);
+
+        assertAll(
+                () -> assertEquals(1, resultado.size()),
+                () -> assertEquals(
+                        propia.getId(),
+                        resultado.get(0).getId()),
+                () -> assertEquals(
+                        propia.getId(),
+                        servicio.consultarPropia(
+                                medico, propia.getId()).getId())
+        );
+
+        assertThrows(
+                SinPermisoException.class,
+                () -> servicio.consultarPropia(
+                        medico, ajena.getId()));
+    }
+
+    @Test
+    @DisplayName(
+            "Un médico crea agendas a su nombre aunque envíe otro médico")
+    void crearAgendaPropiaNoPermiteSuplantarMedico()
+            throws Exception {
+
+        Usuario medico = new Usuario(
+                "medico-1", Rol.MEDICO, 1L);
+
+        AgendaMedica datos = valida();
+        datos.setMedicoId(2L);
+
+        AgendaMedica creada =
+                servicio.crearPropia(medico, datos);
+
+        assertAll(
+                () -> assertEquals(1L, creada.getMedicoId()),
+                () -> assertTrue(creada.isActivo()),
+                () -> assertEquals(
+                        1L,
+                        servicio.listarPropias(
+                                medico)
+                                .get(0).getMedicoId())
+        );
+    }
+
+    @Test
+    @DisplayName(
+            "Modificar conserva la propiedad de la agenda del médico")
+    void modificarAgendaPropiaNoPermiteTransferirPropiedad()
+            throws Exception {
+
+        AgendaMedica creada =
+                servicio.crear(PERSONAL, valida());
+
+        Usuario medico = new Usuario(
+                "medico-1", Rol.MEDICO, 1L);
+
+        AgendaMedica cambios = valida();
+        cambios.setMedicoId(2L);
+        cambios.setHoraInicio(LocalTime.of(9, 0));
+
+        AgendaMedica modificada =
+                servicio.modificarPropia(
+                        medico, creada.getId(), cambios);
+
+        assertAll(
+                () -> assertEquals(1L, modificada.getMedicoId()),
+                () -> assertEquals(
+                        LocalTime.of(9, 0),
+                        modificada.getHoraInicio())
+        );
+    }
+
+    @Test
+    @DisplayName(
+            "Modificar con datos inválidos no cambia la agenda propia")
+    void modificarAgendaPropiaInvalidaNoGuardaCambios()
+            throws Exception {
+
+        Usuario medico = new Usuario(
+                "medico-1", Rol.MEDICO, 1L);
+        AgendaMedica creada =
+                servicio.crearPropia(medico, valida());
+
+        AgendaMedica cambios = valida();
+        cambios.setHoraInicio(LocalTime.of(15, 0));
+        cambios.setHoraFin(LocalTime.of(8, 0));
+
+        assertThrows(
+                DatosAgendaInvalidosException.class,
+                () -> servicio.modificarPropia(
+                        medico, creada.getId(), cambios));
+
+        assertEquals(
+                LocalTime.of(8, 0),
+                servicio.consultarPropia(
+                        medico, creada.getId())
+                        .getHoraInicio());
+    }
+
+    @Test
+    @DisplayName(
+            "Un médico no puede modificar ni eliminar agendas ajenas")
+    void medicoNoPuedeModificarNiEliminarAgendaAjena()
+            throws Exception {
+
+        AgendaMedica ajenaDatos = valida();
+        ajenaDatos.setMedicoId(2L);
+        AgendaMedica ajena =
+                servicio.crear(PERSONAL, ajenaDatos);
+
+        Usuario medico = new Usuario(
+                "medico-1", Rol.MEDICO, 1L);
+
+        assertAll(
+                () -> assertThrows(
+                        SinPermisoException.class,
+                        () -> servicio.modificarPropia(
+                                medico, ajena.getId(), valida())),
+                () -> assertThrows(
+                        SinPermisoException.class,
+                        () -> servicio.eliminarPropia(
+                                medico, ajena.getId()))
+        );
+
+        assertTrue(
+                servicio.consultar(PERSONAL, ajena.getId())
+                        .isActivo());
+    }
+
+    @Test
+    @DisplayName(
+            "Un médico sin identificador no puede gestionar agendas")
+    void medicoSinIdNoPuedeGestionarAgendas() {
+
+        Usuario medico = new Usuario(
+                "medico", Rol.MEDICO);
+
+        assertThrows(
+                SinPermisoException.class,
+                () -> servicio.listarPropias(
+                        medico));
+    }
 }

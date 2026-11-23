@@ -10,7 +10,8 @@ import paciente.SinPermisoException;
 import paciente.Usuario;
 
 public class AgendasServiceImpl
-        implements AgendasService {
+        implements AgendasService,
+                   AgendasRealizacionService {
 
     private final AgendasRepositorio repositorio;
 
@@ -127,6 +128,107 @@ public class AgendasServiceImpl
         repositorio.guardar(agenda);
     }
 
+    @Override
+    public synchronized AgendaMedica crearPropia(
+            Usuario solicitante,
+            AgendaMedica datos)
+            throws SinPermisoException,
+            DatosAgendaInvalidosException {
+
+        exigirIdentidadMedico(solicitante);
+
+        if (datos == null) {
+            throw new DatosAgendaInvalidosException(
+                    List.of(
+                            "Los datos de la agenda son obligatorios"));
+        }
+
+        AgendaMedica creada = datos.copia();
+        creada.setId(null);
+        creada.setMedicoId(solicitante.medicoId());
+        creada.setObservaciones(
+                limpiar(datos.getObservaciones()));
+        creada.setActivo(true);
+
+        validar(creada);
+
+        return repositorio.guardar(creada).copia();
+    }
+
+    @Override
+    public AgendaMedica consultarPropia(
+            Usuario solicitante,
+            long id)
+            throws SinPermisoException,
+            AgendaNoEncontradaException {
+
+        exigirIdentidadMedico(solicitante);
+
+        return buscarPropia(solicitante, id).copia();
+    }
+
+    @Override
+    public List<AgendaMedica> listarPropias(
+            Usuario solicitante)
+            throws SinPermisoException {
+
+        exigirIdentidadMedico(solicitante);
+
+        return repositorio.listar(
+                        solicitante.medicoId(),
+                        null,
+                        null)
+                .stream()
+                .map(AgendaMedica::copia)
+                .toList();
+    }
+
+    @Override
+    public synchronized AgendaMedica modificarPropia(
+            Usuario solicitante,
+            long id,
+            AgendaMedica datos)
+            throws SinPermisoException,
+            DatosAgendaInvalidosException,
+            AgendaNoEncontradaException {
+
+        exigirIdentidadMedico(solicitante);
+
+        AgendaMedica actual = buscarPropia(solicitante, id);
+
+        if (datos == null) {
+            throw new DatosAgendaInvalidosException(
+                    List.of(
+                            "Los datos de la agenda son obligatorios"));
+        }
+
+        AgendaMedica modificada = datos.copia();
+        modificada.setId(actual.getId());
+        modificada.setMedicoId(actual.getMedicoId());
+        modificada.setObservaciones(
+                limpiar(datos.getObservaciones()));
+        modificada.setActivo(actual.isActivo());
+
+        validar(modificada);
+
+        return repositorio.guardar(modificada).copia();
+    }
+
+    @Override
+    public synchronized void eliminarPropia(
+            Usuario solicitante,
+            long id)
+            throws SinPermisoException,
+            AgendaNoEncontradaException {
+
+        exigirIdentidadMedico(solicitante);
+
+        AgendaMedica agenda = buscarPropia(solicitante, id).copia();
+        agenda.setActivo(false);
+
+        repositorio.guardar(agenda);
+    }
+
     private AgendaMedica buscar(long id)
             throws AgendaNoEncontradaException {
 
@@ -135,6 +237,34 @@ public class AgendasServiceImpl
                         new AgendaNoEncontradaException(
                                 "No existe la agenda con id "
                                         + id));
+    }
+
+    private AgendaMedica buscarPropia(
+            Usuario solicitante,
+            long id)
+            throws SinPermisoException,
+            AgendaNoEncontradaException {
+
+        AgendaMedica agenda = buscar(id);
+
+        if (!solicitante.medicoId().equals(agenda.getMedicoId())) {
+            throw new SinPermisoException(
+                    "El médico solo puede gestionar sus propias agendas");
+        }
+
+        return agenda;
+    }
+
+    private void exigirIdentidadMedico(Usuario solicitante)
+            throws SinPermisoException {
+
+        ControlAcceso.exigir(solicitante, Rol.MEDICO);
+
+        if (solicitante.medicoId() == null
+                || solicitante.medicoId() <= 0) {
+            throw new SinPermisoException(
+                    "El identificador del médico es obligatorio");
+        }
     }
 
     private void validar(
