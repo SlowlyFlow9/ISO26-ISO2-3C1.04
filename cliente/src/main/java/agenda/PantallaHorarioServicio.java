@@ -41,10 +41,6 @@ public class PantallaHorarioServicio extends JPanel {
         construir();
         if (disponiblePara(usuario)) {
             cargar();
-        } else {
-            mensaje.setText(
-                    "Esta configuracion solo esta disponible "
-                            + "para el Administrador del Sistema");
         }
     }
 
@@ -56,6 +52,15 @@ public class PantallaHorarioServicio extends JPanel {
     private void construir() {
         setLayout(new BorderLayout(8, 8));
         setBorder(new EmptyBorder(10, 10, 10, 10));
+        mensaje.setName("mensaje");
+        if (!disponiblePara(usuario)) {
+            mensaje.setText(
+                    "Esta configuracion solo esta disponible "
+                            + "para el Administrador del Sistema");
+            add(mensaje, BorderLayout.CENTER);
+            return;
+        }
+
         JPanel formulario = new JPanel(new GridLayout(0, 2, 6, 6));
         for (DayOfWeek dia : DayOfWeek.values()) {
             String nombre = dia.getDisplayName(
@@ -67,7 +72,6 @@ public class PantallaHorarioServicio extends JPanel {
             formulario.add(campo);
         }
         guardar.setName("guardar");
-        mensaje.setName("mensaje");
         guardar.addActionListener(e -> guardar());
         add(new JLabel(
                 "Intervalos HH:mm-HH:mm separados por comas; "
@@ -78,7 +82,6 @@ public class PantallaHorarioServicio extends JPanel {
         pie.add(guardar, BorderLayout.WEST);
         pie.add(mensaje, BorderLayout.CENTER);
         add(pie, BorderLayout.SOUTH);
-        guardar.setVisible(disponiblePara(usuario));
     }
 
     private void cargar() {

@@ -2,6 +2,7 @@ package agenda;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Component;
@@ -141,7 +142,10 @@ class PantallaHorarioServicioTest {
 
         JButton boton = buscar(
                 creada[0], "guardar", JButton.class);
-        assertFalse(boton.isVisible());
+        assertNull(boton);
+        assertNull(
+                buscar(creada[0],
+                        "intervalosMONDAY", JTextField.class));
         assertFalse(PantallaHorarioServicio.disponiblePara(
                 new Usuario("medico", Rol.MEDICO)));
         assertTrue(buscar(
