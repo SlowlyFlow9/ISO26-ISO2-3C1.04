@@ -8,31 +8,31 @@ import com.sun.net.httpserver.HttpServer;
 
 import agenda.AgendaMedica;
 import agenda.AgendasRepositorioMemoria;
+import agenda.HorarioServicioRepositorioMemoria;
+import agenda.HorarioServicioService;
+import agenda.HorarioServicioServiceImpl;
+import agenda.HorarioServicioServidorHttp;
 import agenda.HuecosAgendaRepositorioMemoria;
 import agenda.HuecosAgendaService;
 import agenda.HuecosAgendaServiceImpl;
 import agenda.HuecosAgendaServidorHttp;
-
-import solicitud.SolicitudesRepositorioMemoria;
-import solicitud.SolicitudesService;
-import solicitud.SolicitudesServiceImpl;
-import solicitud.SolicitudesServidorHttp;
-
-import tipoprueba.RepositorioTiposPruebaMemoria;
-import tipoprueba.TipoPrueba;
-
+import cita.Cita;
 import cita.CitasRepositorioMemoria;
-import cita.IdentidadPacienteMemoria;
 import cita.CitasService;
 import cita.CitasServiceImpl;
 import cita.CitasServidorHttp;
-
-import cita.Cita;
 import cita.EstadoCita;
+import cita.IdentidadPacienteMemoria;
 import cita.PoliticaCitaRepositorioMemoria;
 import cita.PoliticaCitaService;
 import cita.PoliticaCitaServiceImpl;
 import cita.PoliticasCitaServidorHttp;
+import solicitud.SolicitudesRepositorioMemoria;
+import solicitud.SolicitudesService;
+import solicitud.SolicitudesServiceImpl;
+import solicitud.SolicitudesServidorHttp;
+import tipoprueba.RepositorioTiposPruebaMemoria;
+import tipoprueba.TipoPrueba;
 
 /**
  * Arranque del servidor compartido.
@@ -72,6 +72,10 @@ public class Servidor {
 
         HuecosAgendaRepositorioMemoria huecos =
                 new HuecosAgendaRepositorioMemoria();
+
+        // CU35: configuracion del horario del servicio.
+        HorarioServicioRepositorioMemoria horario =
+                new HorarioServicioRepositorioMemoria();
 
         // 2. Datos opcionales para pruebas locales.
         if (args.length > 1 && args[1].equals("--demo")) {
@@ -169,8 +173,13 @@ public class Servidor {
                         huecos
                 );
 
+
         PoliticaCitaService servicioPoliticaCita =
                 new PoliticaCitaServiceImpl(politicaCita);
+
+        HorarioServicioService servicioHorario =
+                new HorarioServicioServiceImpl(horario);
+
 
         // 4. Arrancar el servidor HTTP.
         HttpServer http =
@@ -189,6 +198,12 @@ public class Servidor {
         HuecosAgendaServidorHttp.registrar(
                 http,
                 servicioHuecos
+        );
+
+        // CU35: registrar la configuracion horaria.
+        HorarioServicioServidorHttp.registrar(
+                http,
+                servicioHorario
         );
 
         // CU01 y CU02: rutas HTTP de citas del paciente.
@@ -211,6 +226,7 @@ public class Servidor {
         System.out.println("/solicitudes");
         System.out.println("/solicitudes/tipos");
         System.out.println("/huecos");
+        System.out.println("/horarios-servicio");
         System.out.println("/citas");
         System.out.println("/citas/{id}");
         System.out.println("/citas/{id}/confirmar");

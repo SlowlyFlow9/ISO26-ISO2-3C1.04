@@ -220,3 +220,21 @@ Alternativas: deducir la ocupación por médico, día y hora sin añadir campos 
 Motivo: el vínculo explícito entre cita, hueco y solicitud es más robusto que deducirlo, y devolver la solicitud a `PENDIENTE_CITACION` evita que un paciente se quede sin poder recibir otra cita tras una cancelación.
 Consecuencias: `Cita` (CU01) gana dos campos y `CitasRepositorio` un método (`buscarActivaPorHueco`); `SolicitudPrueba` gana `conEstado`, como ya tiene `conId`. El servidor de CU25 no expone rutas HTTP todavía, así que el cliente usará un servicio simulado hasta que se acuerden. Los tests de CU01 no cambian.
 Pendiente de acordar: la aprobación formal del equipo, especialmente de Adrián (CU01), Aitana (CU29) y Natalia (CU13); si hay que comprobar que la duración de la prueba cabe en el hueco; si se debe impedir citar en fechas pasadas; y las rutas HTTP.
+
+
+## D-033 · Configuración de los horarios del servicio (CU35)
+Fecha: 23/11/2026 · It. 4 · Acta: 6 · Issue: #134, #135, #136
+Contexto: CU35 permite al Administrador del Sistema configurar el horario general del servicio, pero las issues no concretan sus atributos ni las reglas de validación.
+Decisión: (1) El horario se representa para los siete días de la semana; cada día puede tener cero o más intervalos. Un día sin intervalos queda cerrado. (2) Cada intervalo tiene una hora de inicio y otra de fin; el inicio debe ser anterior al fin y los intervalos de un mismo día no pueden solaparse, aunque sí pueden ser consecutivos. (3) La configuración inicial contiene los siete días cerrados. (4) Cada modificación registra el nombre del usuario y la fecha y hora del cambio. (5) Solo el rol ADMINISTRADOR puede consultar o modificar el horario. (6) El servidor expone GET y PUT /horarios-servicio mediante HTTP/JSON. (7) El cliente Swing permite indicar intervalos como HH:mm-HH:mm, separados por comas; el cliente valida el formato y el servidor aplica las reglas de negocio.
+Alternativas: limitar cada día a un único intervalo; validar también las reglas de negocio en el cliente.
+Motivo: admitir horarios con pausas sin duplicar la validación de negocio; el servidor sigue siendo la autoridad para aceptar o rechazar la configuración.
+Consecuencias: el horario se almacena en memoria y se pierde al reiniciar el servidor. El cliente y el servidor mantienen sus modelos en sus respectivos módulos. Las ramas de implementación son feature/CU35-servidor y feature/CU35-cliente.
+
+
+## D-034 · Configuración de las políticas de citación (CU36)
+Fecha: 23/11/2026 · It. 5 · Acta: 7 · Issue: #137, #138, #139
+Contexto: CU36 permite al Administrador del Sistema configurar las políticas de citación, pero las issues no concretan sus atributos ni sus valores iniciales.
+Decisión: (1) La política contiene la antelación mínima para reservar, en horas; la ventana máxima de reserva, en días; la antelación mínima para cancelar, en horas; y el máximo de citas activas por paciente. (2) Los valores iniciales son 0 horas, 90 días, 24 horas y 3 citas activas, respectivamente. (3) Las antelaciones no pueden ser negativas; el máximo de citas activas debe ser positivo; la ventana máxima, convertida a horas, debe superar la antelación mínima; y la antelación de cancelación no puede superar la ventana máxima. (4) Cada modificación registra el nombre del usuario y la fecha y hora del cambio. (5) Solo el rol ADMINISTRADOR puede consultar o modificar la política. (6) El servidor expone GET y PUT /politicas-citacion mediante HTTP/JSON. (7) El cliente valida el formato de los valores; el servidor aplica las reglas de negocio.
+Alternativas: dejar los valores iniciales sin definir; aplicar las políticas directamente al flujo de gestión de citas de CU25 en esta misma implementación.
+Motivo: disponer de una configuración consultable y válida desde el primer arranque, manteniendo la validación de negocio en el servidor.
+Consecuencias: la política se almacena en memoria y se pierde al reiniciar el servidor. CU36 configura y guarda los valores; su aplicación al flujo de reservas y cancelaciones de CU25 queda fuera del alcance de estas issues y requerirá acordarse aparte. Las ramas de implementación son feature/CU36-servidor y feature/CU36-cliente.
