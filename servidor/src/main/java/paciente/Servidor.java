@@ -8,31 +8,31 @@ import com.sun.net.httpserver.HttpServer;
 
 import agenda.AgendaMedica;
 import agenda.AgendasRepositorioMemoria;
-import agenda.HuecosAgendaRepositorioMemoria;
-import agenda.HuecosAgendaService;
-import agenda.HuecosAgendaServiceImpl;
-import agenda.HuecosAgendaServidorHttp;
 import agenda.HorarioServicioRepositorioMemoria;
 import agenda.HorarioServicioService;
 import agenda.HorarioServicioServiceImpl;
 import agenda.HorarioServicioServidorHttp;
-
+import agenda.HuecosAgendaRepositorioMemoria;
+import agenda.HuecosAgendaService;
+import agenda.HuecosAgendaServiceImpl;
+import agenda.HuecosAgendaServidorHttp;
+import cita.Cita;
+import cita.CitasRepositorioMemoria;
+import cita.CitasService;
+import cita.CitasServiceImpl;
+import cita.CitasServidorHttp;
+import cita.EstadoCita;
+import cita.IdentidadPacienteMemoria;
+import cita.PoliticaCitaRepositorioMemoria;
+import cita.PoliticaCitaService;
+import cita.PoliticaCitaServiceImpl;
+import cita.PoliticasCitaServidorHttp;
 import solicitud.SolicitudesRepositorioMemoria;
 import solicitud.SolicitudesService;
 import solicitud.SolicitudesServiceImpl;
 import solicitud.SolicitudesServidorHttp;
-
 import tipoprueba.RepositorioTiposPruebaMemoria;
 import tipoprueba.TipoPrueba;
-
-import cita.CitasRepositorioMemoria;
-import cita.IdentidadPacienteMemoria;
-import cita.CitasService;
-import cita.CitasServiceImpl;
-import cita.CitasServidorHttp;
-
-import cita.Cita;
-import cita.EstadoCita;
 
 /**
  * Arranque del servidor compartido.
@@ -61,6 +61,10 @@ public class Servidor {
 
         IdentidadPacienteMemoria identidadPaciente =
                 new IdentidadPacienteMemoria();
+
+        // CU36: repositorio de politicas de citacion.
+        PoliticaCitaRepositorioMemoria politicaCita =
+                new PoliticaCitaRepositorioMemoria();
 
         // CU29: repositorios de agendas y huecos.
         AgendasRepositorioMemoria agendas =
@@ -169,8 +173,13 @@ public class Servidor {
                         huecos
                 );
 
+
+        PoliticaCitaService servicioPoliticaCita =
+                new PoliticaCitaServiceImpl(politicaCita);
+
         HorarioServicioService servicioHorario =
                 new HorarioServicioServiceImpl(horario);
+
 
         // 4. Arrancar el servidor HTTP.
         HttpServer http =
@@ -203,6 +212,12 @@ public class Servidor {
                 servicioCitas
         );
 
+        // CU36: registrar la configuracion de politicas de citacion.
+        PoliticasCitaServidorHttp.registrar(
+                http,
+                servicioPoliticaCita
+        );
+
         System.out.println(
                 "Servidor escuchando en http://localhost:" + puerto);
 
@@ -215,5 +230,6 @@ public class Servidor {
         System.out.println("/citas");
         System.out.println("/citas/{id}");
         System.out.println("/citas/{id}/confirmar");
+        System.out.println("/politicas-citacion");
     }
 }
