@@ -80,4 +80,34 @@ public class CitasServiceImpl
 
         return cita;
     }
+
+     //CU02: Confirma una cita del propio paciente.
+    @Override
+    public synchronized Cita confirmarMiCita(
+            Usuario solicitante,
+            long citaId)
+            throws SinPermisoException,
+            PacienteNoVinculadoException,
+            CitaNoEncontradaException,
+            CitaNoConfirmableException {
+
+        //Comprobar el usuario y que la cita sea suya
+        Cita actual = consultarMiCita(solicitante, citaId);
+
+        //solo se pueden confirmar citas programadas.
+        if (actual.getEstado() != EstadoCita.PROGRAMADA) {
+            throw new CitaNoConfirmableException(
+                    "La cita " + citaId
+                    + " no se puede confirmar porque está "
+                    + actual.getEstado());
+        }
+
+        //crear una copia para modificar su estado.
+        Cita confirmada = actual.copia();
+        confirmada.setEstado(EstadoCita.CONFIRMADA);
+
+        //Guardar el cambio y devolver una copia.
+        return repositorio.guardar(confirmada).copia();
+    }
+
 }

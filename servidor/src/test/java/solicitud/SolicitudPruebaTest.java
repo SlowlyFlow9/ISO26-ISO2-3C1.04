@@ -87,4 +87,33 @@ class SolicitudPruebaTest {
         // Comprobar
         assertFalse(conId.esSeguimiento());
     }
+
+    @Test
+    @DisplayName("conEstado devuelve una copia con el nuevo estado y los mismos datos")
+    void conEstadoCambiaSoloElEstado() {
+        // Preparar
+        SolicitudPrueba original = seguimiento(15L);
+        // Ejecutar
+        SolicitudPrueba citada = original.conEstado(EstadoSolicitud.CITADA);
+        // Comprobar
+        assertAll(
+                () -> assertEquals(EstadoSolicitud.CITADA, citada.getEstado()),
+                () -> assertEquals(original.getId(), citada.getId()),
+                () -> assertEquals(original.getPacienteId(), citada.getPacienteId()),
+                () -> assertEquals(original.getTipoPruebaId(), citada.getTipoPruebaId()),
+                () -> assertEquals(original.getIntervalo(), citada.getIntervalo()),
+                () -> assertEquals(original.getSolicitudOrigenId(),
+                        citada.getSolicitudOrigenId()));
+    }
+
+    @Test
+    @DisplayName("conEstado no modifica la solicitud original")
+    void conEstadoNoModificaLaOriginal() {
+        // Preparar
+        SolicitudPrueba original = sinPeriodicidad();
+        // Ejecutar
+        original.conEstado(EstadoSolicitud.ANULADA);
+        // Comprobar
+        assertNull(original.getEstado());
+    }
 }

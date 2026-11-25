@@ -131,4 +131,43 @@ public class CitasServiceSimulado
                             + "al rol PACIENTE");
         }
     }
+
+    //confirma una cita propia y actualiza el estado almacenado en el servicio simulado
+    @Override
+    public synchronized Cita confirmarMiCita(
+            Usuario solicitante,
+            long citaId)
+            throws SinPermisoException,
+            PacienteNoVinculadoException,
+            CitaNoEncontradaException,
+            CitaNoConfirmableException {
+
+        // Reutilizamos las comprobaciones de CU01: rol, vinculación y propiedad de la cita.
+        Cita actual = consultarMiCita(
+                solicitante, citaId);
+
+        if (actual.getEstado() != EstadoCita.PROGRAMADA) {
+            throw new CitaNoConfirmableException(
+                    "La cita " + citaId
+                    + " no se puede confirmar porque está "
+                    + actual.getEstado());
+        }
+
+        // Actualizamos la cita guardada, no solo la copia obtenida durante la consulta.
+        for (Cita almacenada : citas) {
+
+            if (almacenada.getId() != null
+                    && almacenada.getId() == citaId) {
+
+                almacenada.setEstado(
+                        EstadoCita.CONFIRMADA);
+
+                return almacenada.copia();
+            }
+        }
+
+        throw new CitaNoEncontradaException(
+                "No existe la cita con id " + citaId);
+    }
+
 }
