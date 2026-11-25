@@ -43,4 +43,18 @@ public class CitasRepositorioMemoria
                                 == pacienteId)
                 .toList();
     }
+
+    @Override
+    public synchronized Optional<Cita> buscarActivaPorHueco(
+            long huecoId) {
+        return citas.values().stream()
+                .filter(cita ->
+                        cita.getHuecoId() != null
+                                && cita.getHuecoId() == huecoId)
+                .filter(cita ->
+                        cita.getEstado() == EstadoCita.PROGRAMADA
+                                || cita.getEstado()
+                                        == EstadoCita.CONFIRMADA)
+                .findFirst();
+    }
 }
