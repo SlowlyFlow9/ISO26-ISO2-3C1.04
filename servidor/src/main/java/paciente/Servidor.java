@@ -19,8 +19,6 @@ import agenda.HuecosAgendaService;
 import agenda.HuecosAgendaServiceImpl;
 import agenda.HuecosAgendaServidorHttp;
 
-import solicitud.ListaEsperaService;
-import solicitud.ListaEsperaServiceImpl;
 import cita.Cita;
 import cita.CitasRepositorioMemoria;
 import cita.CitasService;
@@ -32,10 +30,19 @@ import cita.PoliticaCitaRepositorioMemoria;
 import cita.PoliticaCitaService;
 import cita.PoliticaCitaServiceImpl;
 import cita.PoliticasCitaServidorHttp;
+
+import imagen.ImagenesRepositorioMemoria;
+import imagen.ImagenesService;
+import imagen.ImagenesServiceImpl;
+import imagen.ImagenesServidorHttp;
+
+import solicitud.ListaEsperaService;
+import solicitud.ListaEsperaServiceImpl;
 import solicitud.SolicitudesRepositorioMemoria;
 import solicitud.SolicitudesService;
 import solicitud.SolicitudesServiceImpl;
 import solicitud.SolicitudesServidorHttp;
+
 import tipoprueba.RepositorioTiposPruebaMemoria;
 import tipoprueba.TipoPrueba;
 
@@ -59,6 +66,10 @@ public class Servidor {
 
         SolicitudesRepositorioMemoria solicitudes =
                 new SolicitudesRepositorioMemoria();
+
+        // CU17 y CU18: repositorio compartido de imágenes.
+        ImagenesRepositorioMemoria imagenes =
+                new ImagenesRepositorioMemoria();
 
         // CU14 y CU29: repositorios de agendas y huecos.
         // CU01 y CU02: repositorio compartido de citas.
@@ -110,7 +121,6 @@ public class Servidor {
                     "Agenda de demostracion creada: ID "
                     + agendaDemo.getId());
 
-
             // CU02: paciente de demostracion.
             Paciente pacienteDemo = new Paciente();
 
@@ -148,13 +158,13 @@ public class Servidor {
 
             System.out.println(
                     "CU02 - Usuario: paciente-demo");
+
             System.out.println(
                     "CU02 - Cita de demostracion: ID "
                     + citaDemo.getId());
-
         }
 
-        // 3. Crear los servicios
+        // 3. Crear los servicios.
         PacientesService servicioPacientes =
                 new PacientesServiceImpl(pacientes);
 
@@ -165,8 +175,16 @@ public class Servidor {
                         solicitudes
                 );
 
+        // CU17: consulta de imágenes de pruebas.
+        ImagenesService servicioImagenes =
+                new ImagenesServiceImpl(
+                        imagenes,
+                        solicitudes
+                );
+
         ListaEsperaService servicioListaEspera =
                 new ListaEsperaServiceImpl(solicitudes);
+
         // CU01 y CU02: consulta y confirmación de citas.
         CitasService servicioCitas =
                 new CitasServiceImpl(
@@ -190,7 +208,6 @@ public class Servidor {
         HorarioServicioService servicioHorario =
                 new HorarioServicioServiceImpl(horario);
 
-
         // 4. Arrancar el servidor HTTP.
         HttpServer http =
                 PacientesServidorHttp.iniciar(
@@ -209,6 +226,12 @@ public class Servidor {
                 servicioListaEspera
         );
 
+        // CU17: rutas HTTP de consulta de imágenes.
+        ImagenesServidorHttp.registrar(
+                http,
+                servicioImagenes
+        );
+
         // CU29: registrar rutas HTTP de huecos.
         HuecosAgendaServidorHttp.registrar(
                 http,
@@ -219,6 +242,7 @@ public class Servidor {
                 http,
                 servicioAgendas
         );
+
         // CU35: registrar la configuracion horaria.
         HorarioServicioServidorHttp.registrar(
                 http,
@@ -252,5 +276,7 @@ public class Servidor {
         System.out.println("/citas/{id}");
         System.out.println("/citas/{id}/confirmar");
         System.out.println("/politicas-citacion");
+        System.out.println("/imagenes?solicitudId={id}");
+        System.out.println("/imagenes/{id}");
     }
 }
