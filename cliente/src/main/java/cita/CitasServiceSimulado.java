@@ -26,6 +26,11 @@ public class CitasServiceSimulado
     private int cancelacionMinimaHoras = 24;
     private Clock reloj = Clock.systemDefaultZone();
 
+    //CU03: huecos libres del servicio simulado y ventana de reserva (D-034)
+    private final List<HuecoLibre> huecos = new ArrayList<>();
+    private int antelacionMinimaHoras = 0;
+    private int antelacionMaximaDias = 90;
+
     public void vincularPaciente(
             String nombreUsuario,
             long pacienteId) {
@@ -234,5 +239,142 @@ public class CitasServiceSimulado
 
         throw new CitaNoEncontradaException(
                 "No existe la cita con id " + citaId);
+    }
+
+    //CU03: añade un hueco al servicio simulado
+    public void agregarHuecoLibre(HuecoLibre hueco) {
+        huecos.add(hueco);
+    }
+
+    //CU03: cambia la antelación mínima y la ventana máxima de reserva
+    public void fijarVentana(int minimaHoras, int maximaDias) {
+        antelacionMinimaHoras = minimaHoras;
+        antelacionMaximaDias = maximaDias;
+    }
+
+    //CU03: lista los huecos sin cita activa que cumplen la ventana de reserva
+    @Override
+    public synchronized List<HuecoLibre> listarHuecosLibres(
+            Usuario solicitante)
+            throws SinPermisoException,
+            PacienteNoVinculadoException {
+
+        exigirPaciente(solicitante);
+        obtenerPacienteId(solicitante);
+
+        LocalDateTime ahora = LocalDateTime.now(reloj);
+
+        return huecos.stream()
+                .filter(hueco -> !ocupado(hueco.id()))
+                .filter(hueco -> !hueco.fechaHora().isBefore(
+                        ahora.plusHours(antelacionMinimaHoras))
+                        && !hueco.fechaHora().isAfter(
+                        ahora.plusDays(antelacionMaximaDias)))
+                .sorted(java.util.Comparator
+                        .comparing(HuecoLibre::fechaHora)
+                        .thenComparingLong(HuecoLibre::id))
+                .toList();
+    }
+
+    //CU03: cambia una cita propia a otro hueco con las mismas reglas que el servidor (D-039)
+    @Override
+    public synchronized Cita cambiarMiCita(
+            Usuario solicitante,
+            long citaId,
+            long nuevoHuecoId)
+            throws SinPermisoException,
+            PacienteNoVinculadoException,
+            CitaNoEncontradaException,
+            CitaNoModificableException,
+            HuecoNoDisponibleException,
+            CambioFueraDePoliticaException {
+
+        // Reutilizamos las comprobaciones de CU01: rol, vinculación y propiedad de la cita.
+        Cita actual = consultarMiCita(
+                solicitante, citaId);
+
+        if (actual.getEstado() != EstadoCita.PROGRAMADA
+                && actual.getEstado() != EstadoCita.CONFIRMADA) {
+            throw new CitaNoModificableException(
+                    "La cita " + citaId + " está "
+                    + actual.getEstado()
+                    + " y no se puede modificar");
+        }
+
+        HuecoLibre nuevo = huecos.stream()
+                .filter(hueco -> hueco.id() == nuevoHuecoId)
+                .findFirst()
+                .orElseThrow(() ->
+                        new HuecoNoDisponibleException(
+                                "No existe el hueco "
+                                + nuevoHuecoId));
+
+        if (ocupado(nuevoHuecoId)) {
+            throw new HuecoNoDisponibleException(
+                    "El hueco " + nuevoHuecoId
+                    + " ya tiene una cita");
+        }
+
+        exigirPolitica(actual, nuevo.fechaHora());
+
+        // Actualizamos la cita guardada, no solo la copia obtenida durante la consulta.
+        for (Cita almacenada : citas) {
+
+            if (almacenada.getId() != null
+                    && almacenada.getId() == citaId) {
+
+                almacenada.setHuecoId(nuevo.id());
+                almacenada.setMedicoId(nuevo.medicoId());
+                almacenada.setFechaHora(nuevo.fechaHora());
+                almacenada.setEstado(
+                        EstadoCita.PROGRAMADA);
+
+                return almacenada.copia();
+            }
+        }
+
+        throw new CitaNoEncontradaException(
+                "No existe la cita con id " + citaId);
+    }
+
+    private boolean ocupado(long huecoId) {
+
+        return citas.stream().anyMatch(cita ->
+                cita.getHuecoId() != null
+                && cita.getHuecoId() == huecoId
+                && (cita.getEstado() == EstadoCita.PROGRAMADA
+                || cita.getEstado() == EstadoCita.CONFIRMADA));
+    }
+
+    private void exigirPolitica(
+            Cita actual,
+            LocalDateTime nuevaFecha)
+            throws CambioFueraDePoliticaException {
+
+        LocalDateTime ahora = LocalDateTime.now(reloj);
+
+        if (actual.getFechaHora() != null
+                && ahora.isAfter(actual.getFechaHora()
+                        .minusHours(cancelacionMinimaHoras))) {
+            throw new CambioFueraDePoliticaException(
+                    "La cita solo se puede cambiar con al menos "
+                    + cancelacionMinimaHoras
+                    + " horas de antelación");
+        }
+
+        if (nuevaFecha.isBefore(
+                ahora.plusHours(antelacionMinimaHoras))) {
+            throw new CambioFueraDePoliticaException(
+                    "El nuevo hueco debe empezar con al menos "
+                    + antelacionMinimaHoras
+                    + " horas de antelación");
+        }
+
+        if (nuevaFecha.isAfter(
+                ahora.plusDays(antelacionMaximaDias))) {
+            throw new CambioFueraDePoliticaException(
+                    "El nuevo hueco no puede estar a más de "
+                    + antelacionMaximaDias + " días");
+        }
     }
 }

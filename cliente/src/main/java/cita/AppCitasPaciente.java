@@ -7,7 +7,7 @@ import paciente.Rol;
 import paciente.Usuario;
 
 /**
- * CU01, CU02 y CU04 - Arranque de la pantalla de citas.
+ * CU01, CU02, CU03 y CU04 - Arranque de la pantalla de citas.
  */
 
 public final class AppCitasPaciente {
@@ -37,7 +37,7 @@ public final class AppCitasPaciente {
         SwingUtilities.invokeLater(() -> {
 
             JFrame ventana = new JFrame(
-                    "CU01, CU02 y CU04 - Mis citas");
+                    "CU01, CU02, CU03 y CU04 - Mis citas");
 
             ventana.setDefaultCloseOperation(
                     JFrame.EXIT_ON_CLOSE);

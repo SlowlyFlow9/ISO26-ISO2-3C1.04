@@ -71,6 +71,18 @@ class PantallaCitasAsincronaTest {
                 Usuario usuario, long citaId) {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public List<HuecoLibre> listarHuecosLibres(
+                Usuario usuario) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Cita cambiarMiCita(
+                Usuario usuario, long citaId, long huecoId) {
+            throw new UnsupportedOperationException();
+        }
     }
 
     @Test

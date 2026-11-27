@@ -21,7 +21,7 @@ import paciente.ServicioNoDisponibleException;
 import paciente.Usuario;
 
 /**
- * CU01, CU02 y CU04 - Comunicacion HTTP de citas
+ * CU01, CU02, CU03 y CU04 - Comunicacion HTTP de citas
  */
 public class CitasServiceHttp implements CitasService {
 
@@ -350,6 +350,123 @@ public class CitasServiceHttp implements CitasService {
 
             if (codigoError(respuesta)
                     .equals("NO_CANCELABLE")) {
+                throw new CitaNoModificableException(
+                        mensajeError(respuesta));
+            }
+        }
+
+        if (respuesta.statusCode() != 200) {
+            comprobarOtrosErrores(respuesta);
+        }
+
+        return leerCita(respuesta.body());
+    }
+
+    @Override
+    public List<HuecoLibre> listarHuecosLibres(
+            Usuario solicitante)
+            throws SinPermisoException,
+            PacienteNoVinculadoException {
+
+        HttpRequest peticion =
+                prepararPeticion(
+                        solicitante, "/citas/huecos-libres")
+                .GET()
+                .build();
+
+        HttpResponse<String> respuesta = enviar(peticion);
+
+        comprobarPermiso(respuesta);
+
+        if (respuesta.statusCode() != 200) {
+            comprobarOtrosErrores(respuesta);
+        }
+
+        try {
+            List<HuecoLibre> libres = GSON.fromJson(
+                    respuesta.body(),
+                    new TypeToken<List<HuecoLibre>>() {}
+                            .getType());
+
+            if (libres == null || libres.contains(null)) {
+                throw new JsonParseException(
+                        "Listado de huecos no valido");
+            }
+
+            for (HuecoLibre hueco : libres) {
+                if (hueco.id() <= 0
+                        || hueco.fechaHora() == null) {
+
+                    throw new JsonParseException(
+                            "Datos de hueco incompletos");
+                }
+            }
+
+            return libres;
+
+        } catch (RuntimeException e) {
+            throw new ServicioNoDisponibleException(
+                    "El listado de huecos no es valido", e);
+        }
+    }
+
+    @Override
+    public Cita cambiarMiCita(
+            Usuario solicitante,
+            long citaId,
+            long nuevoHuecoId)
+            throws SinPermisoException,
+            PacienteNoVinculadoException,
+            CitaNoEncontradaException,
+            CitaNoModificableException,
+            HuecoNoDisponibleException,
+            CambioFueraDePoliticaException {
+
+        if (citaId <= 0 || nuevoHuecoId <= 0) {
+            throw new IllegalArgumentException(
+                    "El identificador debe ser positivo");
+        }
+
+        HttpRequest peticion =
+                prepararPeticion(
+                        solicitante,
+                        "/citas/" + citaId + "/cambiar")
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        "{\"huecoId\":" + nuevoHuecoId + "}"))
+                .build();
+
+        HttpResponse<String> respuesta = enviar(peticion);
+
+        comprobarPermiso(respuesta);
+
+        if (respuesta.statusCode() == 404) {
+
+            if (codigoError(respuesta)
+                    .equals("HUECO_NO_ENCONTRADO")) {
+                throw new HuecoNoDisponibleException(
+                        mensajeError(respuesta));
+            }
+
+            throw new CitaNoEncontradaException(
+                    mensajeError(respuesta));
+        }
+
+        if (respuesta.statusCode() == 409) {
+
+            String codigo = codigoError(respuesta);
+
+            if (codigo.equals("HUECO_NO_DISPONIBLE")) {
+                throw new HuecoNoDisponibleException(
+                        mensajeError(respuesta));
+            }
+
+            if (codigo.equals("FUERA_DE_POLITICA")) {
+                throw new CambioFueraDePoliticaException(
+                        mensajeError(respuesta));
+            }
+
+            if (codigo.equals("NO_CAMBIABLE")) {
                 throw new CitaNoModificableException(
                         mensajeError(respuesta));
             }
