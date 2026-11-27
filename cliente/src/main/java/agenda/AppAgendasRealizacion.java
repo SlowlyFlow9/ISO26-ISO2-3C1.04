@@ -1,8 +1,12 @@
 package agenda;
 
 import javax.swing.JFrame;
+import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
 
+import cita.CitasRealizacionService;
+import cita.CitasRealizacionServiceHttp;
+import cita.PantallaRealizarPrueba;
 import paciente.Rol;
 import paciente.Usuario;
 
@@ -33,14 +37,23 @@ public final class AppAgendasRealizacion {
         SwingUtilities.invokeLater(() -> {
             AgendasRealizacionService servicio =
                     new AgendasServiceHttp(urlServidor);
+            CitasRealizacionService servicioCitas =
+                    new CitasRealizacionServiceHttp(urlServidor);
+
+            JTabbedPane pestanas = new JTabbedPane();
+            pestanas.addTab(
+                    "Agendas (CU14)",
+                    new PantallaAgendasRealizacion(servicio, usuario));
+            pestanas.addTab(
+                    "Pruebas (CU19)",
+                    new PantallaRealizarPrueba(
+                            servicioCitas, usuario));
 
             JFrame ventana = new JFrame(
-                    "CU14 - Agendas de realización");
+                    "Gestión médica - agendas y pruebas");
             ventana.setDefaultCloseOperation(
                     JFrame.EXIT_ON_CLOSE);
-            ventana.setContentPane(
-                    new PantallaAgendasRealizacion(
-                            servicio, usuario));
+            ventana.setContentPane(pestanas);
             ventana.setSize(750, 450);
             ventana.setLocationRelativeTo(null);
             ventana.setVisible(true);
