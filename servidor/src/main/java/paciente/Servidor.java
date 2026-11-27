@@ -8,6 +8,8 @@ import com.sun.net.httpserver.HttpServer;
 
 import agenda.AgendaMedica;
 import agenda.AgendasRepositorioMemoria;
+import agenda.AgendasServiceImpl;
+import agenda.AgendasServidorHttp;
 import agenda.HorarioServicioRepositorioMemoria;
 import agenda.HorarioServicioService;
 import agenda.HorarioServicioServiceImpl;
@@ -58,6 +60,7 @@ public class Servidor {
         SolicitudesRepositorioMemoria solicitudes =
                 new SolicitudesRepositorioMemoria();
 
+        // CU14 y CU29: repositorios de agendas y huecos.
         // CU01 y CU02: repositorio compartido de citas.
         CitasRepositorioMemoria citas =
                 new CitasRepositorioMemoria();
@@ -93,7 +96,7 @@ public class Servidor {
                     true
             ));
 
-            // CU29: agenda de demostración.
+            // Agenda compartida de demostración para CU14 y CU29.
             AgendaMedica agendaDemo = new AgendaMedica();
 
             agendaDemo.setMedicoId(1L);
@@ -178,6 +181,8 @@ public class Servidor {
                         huecos
                 );
 
+        AgendasServiceImpl servicioAgendas =
+                new AgendasServiceImpl(agendas);
 
         PoliticaCitaService servicioPoliticaCita =
                 new PoliticaCitaServiceImpl(politicaCita);
@@ -210,6 +215,10 @@ public class Servidor {
                 servicioHuecos
         );
 
+        AgendasServidorHttp.registrar(
+                http,
+                servicioAgendas
+        );
         // CU35: registrar la configuracion horaria.
         HorarioServicioServidorHttp.registrar(
                 http,
@@ -237,6 +246,7 @@ public class Servidor {
         System.out.println("/solicitudes/tipos");
         System.out.println("/listas-espera");
         System.out.println("/huecos");
+        System.out.println("/agendas-realizacion");
         System.out.println("/horarios-servicio");
         System.out.println("/citas");
         System.out.println("/citas/{id}");

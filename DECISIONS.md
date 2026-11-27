@@ -211,6 +211,14 @@ Motivo: reutilizar la entidad cumple D-018. El enumerado evita valores no recono
 Consecuencias: `SolicitudPrueba` se amplía en el cliente y en el servidor, y `conId` debe copiar también los campos nuevos. Los tests de CU11 y CU13 no cambian. Los tests de CU12 irán en ficheros propios. CU13 gestionará las solicitudes de seguimiento igual que las demás. CU27 incluye en su lista las solicitudes en estado `PENDIENTE_CITACION`, ordenadas por prioridad, fecha e ID, y ofrece un filtro por prioridad; una solicitud deja de aparecer cuando CU25 la cambia a `CITADA`. CU09 y CU10 mostrarán más adelante los seguimientos al paciente. Las issues del CU12 y su sub-issue de servidor y de cliente deben citar esta decisión.
 Pendiente de acordar: la aprobación formal del equipo, especialmente de Natalia (CU13) y Aitana (CU11), los valores máximos admitidos para el intervalo y las repeticiones, y si CU13 necesita estados propios para los seguimientos.
 
+## D-031 · Gestión de agendas propias de realización (CU14)
+Fecha: 23/11/2026 · It. 4 · Acta: pendiente · Issue: #142, #143, #144
+Contexto: CU14 permite al médico gestionar agendas de realización, mientras CU26 gestiona la agenda médica diaria y CU29 gestiona sus huecos.
+Decisión: CU14 reutiliza `AgendaMedica` y sus datos (`medicoId`, fecha, intervalo horario, observaciones y estado activo), sin cambiar las operaciones administrativas de CU26 ni el contrato de CU29. El médico puede crear, consultar, modificar y eliminar lógicamente solo sus propias agendas. La propiedad la determina el `medicoId` explícito de `Usuario`, enviado en `X-Medico-Id` junto con `X-Usuario` y `X-Rol`; el servidor asigna el médico propietario al crear y lo conserva al modificar, sin confiar en el valor enviado en el cuerpo. (propuesta)
+Motivo: se reutiliza el modelo ya consumido por CU29 y se evita duplicar el concepto de agenda; la identidad explícita permite comprobar en el servidor la propiedad de cada agenda.
+Consecuencias: CU14 expone operaciones y pantalla separadas de las de CU26. El control de identidad sigue la simplificación temporal de D-023 y no sustituye la autenticación real prevista con SSO.
+Pendiente de acordar: ratificación formal del equipo.
+
 
 ## D-032 · Gestión de las citas por el personal administrativo (CU25)
 Fecha: 21/11/2026 · It. 5 · Acta: pendiente · Issue: #126, #127 · Relacionada con CU01, CU11, CU13, CU26 y CU29
