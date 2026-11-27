@@ -1,5 +1,6 @@
 package imagen;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import paciente.ControlAcceso;
@@ -22,6 +23,7 @@ public class ImagenesServiceImpl
         this.solicitudes = solicitudes;
     }
 
+    // CU17 - Consultar listado de imágenes.
     @Override
     public List<ResumenImagenPrueba> listar(
             Usuario solicitante,
@@ -40,6 +42,7 @@ public class ImagenesServiceImpl
                 .toList();
     }
 
+    // CU17 - Consultar una imagen.
     @Override
     public ImagenPrueba consultar(
             Usuario solicitante,
@@ -64,6 +67,40 @@ public class ImagenesServiceImpl
         return imagen;
     }
 
+    // CU18 - Registrar una nueva imagen.
+    @Override
+    public ResumenImagenPrueba crear(
+            Usuario solicitante,
+            DatosCreacionImagen datos)
+            throws SinPermisoException,
+            SolicitudImagenNoEncontradaException,
+            DatosImagenInvalidosException {
+
+        ControlAcceso.exigir(solicitante, Rol.MEDICO);
+
+        if (solicitante.medicoId() == null
+                || solicitante.medicoId() <= 0) {
+
+            throw new SinPermisoException(
+                    "El médico debe estar identificado");
+        }
+
+        ValidadorImagen.validar(datos);
+
+        comprobarSolicitud(datos.solicitudId());
+
+        ImagenPrueba imagen = new ImagenPrueba(
+                0,
+                datos.solicitudId(),
+                datos.nombre().trim(),
+                datos.tipoContenido(),
+                datos.contenido(),
+                solicitante.medicoId(),
+                LocalDateTime.now());
+
+        return imagenes.guardar(imagen).resumen();
+    }
+
     private void comprobarSolicitud(long solicitudId)
             throws SolicitudImagenNoEncontradaException {
 
@@ -78,6 +115,7 @@ public class ImagenesServiceImpl
     private static void validarId(long id) {
 
         if (id <= 0) {
+
             throw new IllegalArgumentException(
                     "El identificador debe ser positivo");
         }

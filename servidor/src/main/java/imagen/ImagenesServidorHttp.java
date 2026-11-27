@@ -7,16 +7,21 @@ import java.time.LocalDateTime;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializer;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
+import paciente.ControlAcceso;
 import paciente.Rol;
 import paciente.SinPermisoException;
 import paciente.Usuario;
 
 public final class ImagenesServidorHttp {
+
+    private static final int MAX_CUERPO_HTTP =
+            8 * 1024 * 1024;
 
     private static final Gson GSON = new GsonBuilder()
             .registerTypeAdapter(
@@ -36,6 +41,7 @@ public final class ImagenesServidorHttp {
         servidor.createContext("/imagenes", exchange -> {
 
             try {
+
                 atender(exchange, servicio);
 
             } catch (SinPermisoException e) {
@@ -55,13 +61,16 @@ public final class ImagenesServidorHttp {
                         error("IMAGEN_NO_ENCONTRADA",
                                 e.getMessage()));
 
-            } catch (IllegalArgumentException e) {
+            } catch (DatosImagenInvalidosException
+                    | IllegalArgumentException
+                    | JsonParseException e) {
 
                 responder(exchange, 400,
                         error("DATOS_INVALIDOS",
                                 e.getMessage()));
 
             } finally {
+
                 exchange.close();
             }
         });
@@ -73,7 +82,8 @@ public final class ImagenesServidorHttp {
             throws IOException,
             SinPermisoException,
             ImagenNoEncontradaException,
-            SolicitudImagenNoEncontradaException {
+            SolicitudImagenNoEncontradaException,
+            DatosImagenInvalidosException {
 
         String ruta = exchange.getRequestURI().getPath();
 
@@ -91,9 +101,23 @@ public final class ImagenesServidorHttp {
             return;
         }
 
-        if (!exchange.getRequestMethod().equals("GET")) {
+        String metodo = exchange.getRequestMethod();
 
-            exchange.getResponseHeaders().set("Allow", "GET");
+        Usuario usuario = usuario(exchange);
+
+        // CU18 - Crear una imagen.
+        if (listado && metodo.equals("POST")) {
+
+            crearImagen(exchange, servicio, usuario);
+
+            return;
+        }
+
+        if (!metodo.equals("GET")) {
+
+            exchange.getResponseHeaders().set(
+                    "Allow",
+                    listado ? "GET, POST" : "GET");
 
             responder(exchange, 405,
                     error("METODO_NO_PERMITIDO",
@@ -102,8 +126,7 @@ public final class ImagenesServidorHttp {
             return;
         }
 
-        Usuario usuario = usuario(exchange);
-
+        // CU17 - Consultar listado.
         if (listado) {
 
             String consulta =
@@ -125,6 +148,7 @@ public final class ImagenesServidorHttp {
 
         } else {
 
+            // CU17 - Consultar una imagen.
             long imagenId = Long.parseLong(
                     ruta.substring("/imagenes/".length()));
 
@@ -132,6 +156,67 @@ public final class ImagenesServidorHttp {
                     GSON.toJson(
                             servicio.consultar(usuario, imagenId)));
         }
+    }
+
+    private static void crearImagen(
+            HttpExchange exchange,
+            ImagenesService servicio,
+            Usuario usuario)
+            throws IOException,
+            SinPermisoException,
+            SolicitudImagenNoEncontradaException,
+            DatosImagenInvalidosException {
+
+        ControlAcceso.exigir(usuario, Rol.MEDICO);
+
+        if (usuario.medicoId() == null
+                || usuario.medicoId() <= 0) {
+
+            throw new SinPermisoException(
+                    "El médico debe estar identificado");
+        }
+
+        String tipo = exchange.getRequestHeaders()
+                .getFirst("Content-Type");
+
+        if (tipo == null
+                || !tipo.split(";", 2)[0].trim()
+                        .equalsIgnoreCase("application/json")) {
+
+            responder(exchange, 415,
+                    error("FORMATO_NO_ADMITIDO",
+                            "Se requiere application/json"));
+
+            return;
+        }
+
+        byte[] bytes = exchange.getRequestBody()
+                .readNBytes(MAX_CUERPO_HTTP + 1);
+
+        if (bytes.length > MAX_CUERPO_HTTP) {
+
+            responder(exchange, 413,
+                    error("PETICION_DEMASIADO_GRANDE",
+                            "La petición supera el tamaño permitido"));
+
+            return;
+        }
+
+        String cuerpo = new String(
+                bytes, StandardCharsets.UTF_8);
+
+        DatosCreacionImagen datos = GSON.fromJson(
+                cuerpo,
+                DatosCreacionImagen.class);
+
+        ResumenImagenPrueba creada =
+                servicio.crear(usuario, datos);
+
+        exchange.getResponseHeaders().set(
+                "Location",
+                "/imagenes/" + creada.id());
+
+        responder(exchange, 201, GSON.toJson(creada));
     }
 
     private static Usuario usuario(HttpExchange exchange) {
@@ -146,6 +231,7 @@ public final class ImagenesServidorHttp {
                 .getFirst("X-Medico-Id");
 
         if (nombre == null || nombre.isBlank() || rol == null) {
+
             return null;
         }
 
@@ -155,12 +241,14 @@ public final class ImagenesServidorHttp {
                     ? null : Long.valueOf(medicoId);
 
             if (id != null && id <= 0) {
+
                 return null;
             }
 
             return new Usuario(nombre, Rol.valueOf(rol), id);
 
         } catch (IllegalArgumentException e) {
+
             return null;
         }
     }
@@ -191,6 +279,7 @@ public final class ImagenesServidorHttp {
         exchange.sendResponseHeaders(estado, bytes.length);
 
         try (var salida = exchange.getResponseBody()) {
+
             salida.write(bytes);
         }
     }

@@ -234,12 +234,12 @@ class ImagenesServidorHttpTest {
     }
 
     @Test
-    @DisplayName("POST no está permitido todavía en CU17")
+    @DisplayName("DELETE no está permitido en la gestión de imágenes")
     void metodoNoPermitido() throws Exception {
 
         assertEquals(
                 405,
-                pedir("/imagenes", "POST", "MEDICO").statusCode());
+                pedir("/imagenes", "DELETE", "MEDICO").statusCode());
     }
 
     @Test

@@ -278,5 +278,6 @@ public class Servidor {
         System.out.println("/politicas-citacion");
         System.out.println("/imagenes?solicitudId={id}");
         System.out.println("/imagenes/{id}");
+        System.out.println("POST /imagenes");
     }
 }
