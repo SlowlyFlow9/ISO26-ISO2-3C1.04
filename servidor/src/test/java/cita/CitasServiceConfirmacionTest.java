@@ -35,7 +35,7 @@ class CitasServiceConfirmacionTest {
         identidad.vincular("paciente1", 10L);
         identidad.vincular("paciente2", 20L);
 
-        servicio = new CitasServiceImpl(
+        servicio = ServiciosCitasPrueba.citas(
                 repositorio, identidad);
 
         citaId = repositorio.guardar(

@@ -17,11 +17,12 @@ import paciente.SinPermisoException;
 import paciente.Usuario;
 
 /**
- * CU01 y CU02 - Comunicacion HTTP de citas del paciente.
+ * CU01, CU02 y CU04 - Comunicacion HTTP de citas del paciente.
  *
  * GET  /citas
  * GET  /citas/{id}
  * POST /citas/{id}/confirmar
+ * POST /citas/{id}/cancelar
  */
 
 public final class CitasServidorHttp {
@@ -67,6 +68,16 @@ public final class CitasServidorHttp {
                 responder(exchange, 409,
                         error("NO_CONFIRMABLE", e.getMessage()));
 
+            } catch (CitaNoModificableException e) {
+
+                responder(exchange, 409,
+                        error("NO_CANCELABLE", e.getMessage()));
+
+            } catch (CancelacionFueraDePlazoException e) {
+
+                responder(exchange, 409,
+                        error("FUERA_DE_PLAZO", e.getMessage()));
+
             } catch (IllegalArgumentException e) {
 
                 responder(exchange, 400,
@@ -87,7 +98,9 @@ public final class CitasServidorHttp {
             throws IOException, SinPermisoException,
             PacienteNoVinculadoException,
             CitaNoEncontradaException,
-            CitaNoConfirmableException {
+            CitaNoConfirmableException,
+            CitaNoModificableException,
+            CancelacionFueraDePlazoException {
 
         String ruta =
                 exchange.getRequestURI().getPath();
@@ -156,6 +169,23 @@ public final class CitasServidorHttp {
 
                 responder(exchange, 200,
                         GSON.toJson(confirmada));
+                return;
+            }
+
+            //CU04: Cancelar una cita propia.
+            if (partes.length == 4
+                    && partes[3].equals("cancelar")) {
+
+                if (!metodo.equals("POST")) {
+                    responder(exchange, 405,
+                            error("METODO_NO_PERMITIDO", null));
+                    return;
+                }
+
+                responder(exchange, 200,
+                        GSON.toJson(
+                                servicio.cancelarMiCita(
+                                        paciente, citaId)));
                 return;
             }
         }
