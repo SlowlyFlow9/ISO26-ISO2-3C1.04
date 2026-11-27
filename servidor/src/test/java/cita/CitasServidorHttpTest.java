@@ -17,6 +17,7 @@ import com.sun.net.httpserver.HttpServer;
 import paciente.PacientesRepositorioMemoria;
 import paciente.PacientesServiceImpl;
 import paciente.PacientesServidorHttp;
+import solicitud.SolicitudesRepositorioMemoria;
 
 /**
  * CU02 - Pruebas de las rutas HTTP de citas.
@@ -28,11 +29,13 @@ class CitasServidorHttpTest {
     private final HttpClient cliente = HttpClient.newHttpClient();
 
     private CitasRepositorioMemoria repositorio;
+    private SolicitudesRepositorioMemoria solicitudes;
 
     @BeforeEach
     void preparar() throws Exception {
 
         repositorio = new CitasRepositorioMemoria();
+        solicitudes = new SolicitudesRepositorioMemoria();
 
         IdentidadPacienteMemoria identidad =
                 new IdentidadPacienteMemoria();
@@ -52,7 +55,9 @@ class CitasServidorHttpTest {
         CitasServidorHttp.registrar(
                 servidor,
                 new CitasServiceImpl(
-                        repositorio, identidad));
+                        repositorio, identidad),
+                new CitasRealizacionServiceImpl(
+                        repositorio, solicitudes));
     }
 
     @AfterEach
@@ -82,6 +87,15 @@ class CitasServidorHttpTest {
             String metodo,
             String usuario,
             String rol) throws Exception {
+        return pedir(ruta, metodo, usuario, rol, null);
+    }
+
+    private HttpResponse<String> pedir(
+            String ruta,
+            String metodo,
+            String usuario,
+            String rol,
+            String medicoId) throws Exception {
 
         String url = "http://127.0.0.1:"
                 + servidor.getAddress().getPort()
@@ -97,10 +111,12 @@ class CitasServidorHttpTest {
         if (rol != null) {
             peticion.header("X-Rol", rol);
         }
+        if (medicoId != null) {
+            peticion.header("X-Medico-Id", medicoId);
+        }
 
         if ("POST".equals(metodo)) {
-            peticion.POST(
-                    HttpRequest.BodyPublishers.noBody());
+            peticion.POST(HttpRequest.BodyPublishers.noBody());
         } else if ("GET".equals(metodo)) {
             peticion.GET();
         } else {
@@ -120,6 +136,14 @@ class CitasServidorHttpTest {
 
         return pedir(
                 ruta, metodo, "paciente1", "PACIENTE");
+    }
+
+    private HttpResponse<String> comoMedico(
+            String ruta,
+            String metodo) throws Exception {
+        return pedir(
+                ruta, metodo, "medico1", "MEDICO",
+                "30");
     }
 
     @Test
@@ -251,4 +275,37 @@ class CitasServidorHttpTest {
 
         assertEquals(405, respuesta.statusCode());
     }
+
+    @Test
+    void medicoPuedeMarcarSuCitaComoRealizada()
+            throws Exception {
+        var respuesta = comoMedico(
+                "/citas/1/realizar", "POST");
+
+        assertEquals(200, respuesta.statusCode());
+        assertTrue(respuesta.body()
+                .contains("\"estado\":\"REALIZADA\""));
+        assertEquals(
+                EstadoCita.REALIZADA,
+                repositorio.buscarPorId(1L)
+                        .orElseThrow().getEstado());
+    }
+
+    @Test
+    void rechazarPeticionMedicaDeOtroMedico()
+            throws Exception {
+        var respuesta = pedir(
+                "/citas/1/realizar",
+                "POST",
+                "otro",
+                "MEDICO",
+                "31");
+
+        assertEquals(403, respuesta.statusCode());
+        assertEquals(
+                EstadoCita.PROGRAMADA,
+                repositorio.buscarPorId(1L)
+                        .orElseThrow().getEstado());
+    }
+
 }
