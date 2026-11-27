@@ -1,6 +1,8 @@
 package cita;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import agenda.AgendaMedica;
@@ -124,6 +126,22 @@ public class CitasAdministracionServiceImpl
 
         exigirPermiso(solicitante);
 
+        return reprogramarCita(citaId, nuevoHuecoId);
+    }
+
+    /**
+     * Mueve la cita a otro hueco libre sin comprobar el rol; la usan CU25 y
+     * CU03, que comprueban cada uno el permiso de su actor.
+     */
+    synchronized Cita reprogramarCita(
+            long citaId,
+            long nuevoHuecoId)
+            throws CitaNoEncontradaException,
+            CitaNoModificableException,
+            HuecoAgendaNoEncontradoException,
+            AgendaNoEncontradaException,
+            HuecoNoDisponibleException {
+
         Cita actual = buscarCitaModificable(citaId);
 
         HuecoElegido elegido = buscarHuecoLibre(nuevoHuecoId);
@@ -147,6 +165,17 @@ public class CitasAdministracionServiceImpl
             CitaNoModificableException {
 
         exigirPermiso(solicitante);
+
+        return cancelarCita(citaId);
+    }
+
+    /**
+     * Cancela la cita sin comprobar el rol; la usan CU25 y CU04, que
+     * comprueban cada uno el permiso de su actor.
+     */
+    synchronized Cita cancelarCita(long citaId)
+            throws CitaNoEncontradaException,
+            CitaNoModificableException {
 
         Cita actual = buscarCitaModificable(citaId);
 
@@ -208,6 +237,50 @@ public class CitasAdministracionServiceImpl
     }
 
     // solo se pueden reprogramar o cancelar las citas PROGRAMADA o CONFIRMADA
+    /** CU03: fecha y hora de un hueco que se puede usar; falla si no es así. */
+    LocalDateTime fechaHoraDeHuecoLibre(long huecoId)
+            throws HuecoAgendaNoEncontradoException,
+            AgendaNoEncontradaException,
+            HuecoNoDisponibleException {
+
+        return fechaHora(buscarHuecoLibre(huecoId));
+    }
+
+    /**
+     * CU03: huecos que se pueden elegir (agenda activa, no bloqueados y sin
+     * cita activa), ordenados por fecha y hora.
+     */
+    List<HuecoLibre> huecosLibres() {
+
+        List<HuecoLibre> libres = new ArrayList<>();
+
+        for (AgendaMedica agenda
+                : agendas.listar(null, null, true)) {
+
+            for (HuecoAgenda hueco
+                    : huecos.listarPorAgenda(agenda.getId())) {
+
+                if (!hueco.isBloqueado()
+                        && citas.buscarActivaPorHueco(
+                                hueco.getId()).isEmpty()) {
+
+                    libres.add(new HuecoLibre(
+                            hueco.getId(),
+                            agenda.getMedicoId(),
+                            LocalDateTime.of(
+                                    agenda.getFecha(),
+                                    hueco.getHoraInicio())));
+                }
+            }
+        }
+
+        libres.sort(Comparator
+                .comparing(HuecoLibre::fechaHora)
+                .thenComparingLong(HuecoLibre::id));
+
+        return libres;
+    }
+
     private Cita buscarCitaModificable(long citaId)
             throws CitaNoEncontradaException,
             CitaNoModificableException {
