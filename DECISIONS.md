@@ -273,3 +273,35 @@ Alternativas: una ruta distinta para cada filtro; anular con `DELETE /solicitude
 Motivo: se reutiliza la ruta `/solicitudes` y su formato (D-022); `POST …/anulacion` deja claro que la solicitud se conserva.
 Consecuencias: el cliente HTTP construye la consulta con `FiltroSolicitudes.comoParametros()`. CU27 consulta la lista de espera por su ruta propia, `/listas-espera`.
 Pendiente de acordar: la aprobación formal del equipo, especialmente de Natalia (CU13).
+
+## D-043 · Modelo y almacenamiento de imágenes de pruebas (CU17 y CU18)
+
+Fecha: 28/11/2026 · It.: pendiente de confirmar · Acta: pendiente · Issue: #181, #182, #183, #184, #185, #186
+
+Contexto: RF17 permite al médico consultar imágenes de pruebas y RF18 permite crearlas. Ambos casos de uso necesitan compartir un modelo de datos y un mecanismo de almacenamiento que permita recuperar las imágenes previamente registradas.
+
+Decisión: (1) CU17 y CU18 comparten la entidad `ImagenPrueba`, formada por identificador, identificador de solicitud, nombre, tipo de contenido, contenido en Base64, identificador del médico que registra la imagen y fecha de creación. (2) Se utiliza `ResumenImagenPrueba` para devolver los listados sin incluir el contenido de las imágenes. (3) Las imágenes se almacenan mediante la interfaz `ImagenesRepositorio`, con una implementación en memoria denominada `ImagenesRepositorioMemoria`, siguiendo D-024. (4) Cada imagen debe estar asociada a una solicitud de prueba existente. Una solicitud puede contener varias imágenes. (5) El identificador y la fecha de creación son asignados por el servidor. El médico que registra la imagen se obtiene del usuario solicitante mediante `X-Medico-Id`. (propuesta)
+
+Alternativas: almacenar los archivos directamente en el sistema de ficheros; utilizar una base de datos; almacenar las imágenes en un repositorio externo; devolver el contenido completo de todas las imágenes en cada consulta.
+
+Motivo: reutilizar el modelo y el repositorio evita duplicar funcionalidades entre CU17 y CU18. La interfaz de repositorio permite sustituir el almacenamiento en memoria sin modificar la lógica de negocio. Separar el resumen del contenido completo reduce la cantidad de información transmitida durante las consultas.
+
+Consecuencias: las imágenes se pierden al reiniciar el servidor. El cliente y el servidor mantienen sus respectivos modelos compatibles mediante HTTP/JSON, siguiendo D-022. Las imágenes creadas mediante CU18 quedan disponibles para su consulta mediante CU17.
+
+Pendiente de acordar: la ratificación formal del equipo, la persistencia definitiva de las imágenes y su futura integración con los sistemas externos de información clínica.
+
+## D-044 · Validación, permisos y comunicación de imágenes de pruebas (CU17 y CU18)
+
+Fecha: 28/11/2026 · It.: pendiente de confirmar · Acta: pendiente · Issue: #181, #182, #183, #184, #185, #186
+
+Contexto: CU17 y CU18 necesitan establecer las operaciones HTTP, los permisos de acceso y las condiciones que debe cumplir una imagen antes de registrarse.
+
+Decisión: (1) Solo el rol Médico puede consultar y registrar imágenes, siguiendo D-016 y D-023. Para registrar imágenes se exige además un identificador de médico positivo, reutilizando el mecanismo de identificación de D-035. (2) Se admiten archivos PNG y JPEG con un tamaño máximo de 5 MiB y 16 millones de píxeles. (3) Se comprueba el contenido real de la imagen, su formato, sus dimensiones y la validez de su nombre. (4) El cliente realiza comprobaciones previas y el servidor aplica la validación definitiva, siguiendo D-013. (5) Se establecen las rutas `GET /imagenes?solicitudId={id}`, `GET /imagenes/{id}` y `POST /imagenes`. Las consultas correctas devuelven HTTP 200 y la creación devuelve HTTP 201. (6) Las pantallas se implementan mediante Swing, siguiendo D-020, y utilizan SwingWorker para evitar bloquear la interfaz durante la lectura de archivos y la comunicación HTTP. (7) El registro no modifica el estado de la solicitud. (propuesta)
+
+Alternativas: admitir cualquier formato de archivo; validar únicamente la extensión; transmitir las imágenes mediante multipart/form-data; utilizar una ruta independiente para cada caso de uso; integrar directamente formatos clínicos como DICOM.
+
+Motivo: limitar los formatos y las dimensiones reduce la posibilidad de registrar archivos incorrectos o excesivamente grandes. La comprobación del contenido real evita aceptar archivos que únicamente tienen una extensión de imagen. Reutilizar HTTP/JSON mantiene la coherencia con las decisiones arquitectónicas existentes.
+
+Consecuencias: el servidor gestiona los errores mediante códigos HTTP 400, 403, 404, 405, 413 y 415. La creación permite seleccionar, previsualizar y registrar imágenes, mientras que la consulta permite obtener el listado y visualizar una imagen individual. El control de acceso es provisional y se basa en los datos declarados por el cliente, sin autenticación real ni comprobación de propiedad de la solicitud.
+
+Pendiente de acordar: la aprobación de los formatos y límites propuestos, la necesidad de admitir DICOM, los estados de solicitud en los que se pueden registrar imágenes y las reglas definitivas de autorización y acceso a información clínica.
