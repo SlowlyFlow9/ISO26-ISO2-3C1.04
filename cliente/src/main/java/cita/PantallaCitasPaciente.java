@@ -25,6 +25,7 @@ import paciente.Usuario;
 /**
  * CU01 - Consultar citas del paciente.
  * CU02 - Confirmar citas programadas.
+ * CU04 - Cancelar citas programadas o confirmadas.
  *
  * La pantalla depende del contrato CitasService.
  */
@@ -35,10 +36,11 @@ public class PantallaCitasPaciente extends JPanel {
     private final Usuario usuario;
     private final boolean asincrono;
     private final BiPredicate<Component, Long> pedirConfirmacion;
+    private final BiPredicate<Component, Long> pedirCancelacion;
 
     private int versionListado;
     private int versionDetalle;
-    private boolean confirmando;
+    private boolean operando;
 
     private final DefaultTableModel modelo =
             new DefaultTableModel(
@@ -64,6 +66,9 @@ public class PantallaCitasPaciente extends JPanel {
     private final JButton botonConfirmar =
             new JButton("Confirmar cita");
 
+    private final JButton botonCancelar =
+            new JButton("Cancelar cita");
+
     /**
      * Constructor original de CU01. Conserva el funcionamiento de los
      * tests existentes.
@@ -73,7 +78,7 @@ public class PantallaCitasPaciente extends JPanel {
             Usuario usuario) {
 
         this(servicio, usuario, false,
-                dialogoNormal());
+                dialogoNormal(), dialogoCancelar());
     }
 
      //Constructor para la aplicación real.
@@ -83,7 +88,7 @@ public class PantallaCitasPaciente extends JPanel {
             boolean asincrono) {
 
         this(servicio, usuario, asincrono,
-                dialogoNormal());
+                dialogoNormal(), dialogoCancelar());
     }
 
      //Constructor utilizado por las pruebas de CU02
@@ -93,19 +98,32 @@ public class PantallaCitasPaciente extends JPanel {
             BiPredicate<Component, Long> pedirConfirmacion) {
 
         this(servicio, usuario, false,
-                pedirConfirmacion);
+                pedirConfirmacion, dialogoCancelar());
+    }
+
+     //Constructor utilizado por las pruebas de CU04
+    PantallaCitasPaciente(
+            CitasService servicio,
+            Usuario usuario,
+            BiPredicate<Component, Long> pedirConfirmacion,
+            BiPredicate<Component, Long> pedirCancelacion) {
+
+        this(servicio, usuario, false,
+                pedirConfirmacion, pedirCancelacion);
     }
 
     private PantallaCitasPaciente(
             CitasService servicio,
             Usuario usuario,
             boolean asincrono,
-            BiPredicate<Component, Long> pedirConfirmacion) {
+            BiPredicate<Component, Long> pedirConfirmacion,
+            BiPredicate<Component, Long> pedirCancelacion) {
 
         this.servicio = servicio;
         this.usuario = usuario;
         this.asincrono = asincrono;
         this.pedirConfirmacion = pedirConfirmacion;
+        this.pedirCancelacion = pedirCancelacion;
 
         construir();
         actualizar();
@@ -121,6 +139,20 @@ public class PantallaCitasPaciente extends JPanel {
                         "Confirmar cita",
                         JOptionPane.YES_NO_OPTION,
                         JOptionPane.QUESTION_MESSAGE)
+                        == JOptionPane.YES_OPTION;
+    }
+
+    private static BiPredicate<Component, Long>
+            dialogoCancelar() {
+
+        return (padre, id) ->
+                JOptionPane.showConfirmDialog(
+                        padre,
+                        "¿Quieres cancelar la cita " + id
+                        + "? Esta acción no se puede deshacer.",
+                        "Cancelar cita",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.WARNING_MESSAGE)
                         == JOptionPane.YES_OPTION;
     }
 
@@ -172,10 +204,16 @@ public class PantallaCitasPaciente extends JPanel {
         botonConfirmar.addActionListener(
                 e -> confirmarSeleccion());
 
+        botonCancelar.setName("botonCancelarCita");
+        botonCancelar.setEnabled(false);
+        botonCancelar.addActionListener(
+                e -> cancelarSeleccion());
+
         JPanel botones =
                 new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
         botones.add(botonConfirmar);
+        botones.add(botonCancelar);
         botones.add(actualizar);
 
         inferior.add(botones, BorderLayout.EAST);
@@ -194,7 +232,7 @@ public class PantallaCitasPaciente extends JPanel {
         int solicitud = ++versionListado;
         ++versionDetalle;
 
-        botonConfirmar.setEnabled(false);
+        desactivarBotones();
         mensaje.setText("Cargando citas...");
 
         ejecutar(
@@ -217,7 +255,7 @@ public class PantallaCitasPaciente extends JPanel {
 
                     modelo.setRowCount(0);
                     detalle.setText("");
-                    botonConfirmar.setEnabled(false);
+                    desactivarBotones();
                     mensaje.setText(
                             "Error: " + error.getMessage());
                 }
@@ -269,7 +307,7 @@ public class PantallaCitasPaciente extends JPanel {
         int solicitud = ++versionDetalle;
         int fila = tabla.getSelectedRow();
 
-        botonConfirmar.setEnabled(false);
+        desactivarBotones();
 
         if (fila < 0) {
             detalle.setText("");
@@ -301,9 +339,16 @@ public class PantallaCitasPaciente extends JPanel {
                             + cita.getEstado());
 
                     botonConfirmar.setEnabled(
-                            !confirmando
+                            !operando
                             && cita.getEstado()
                                     == EstadoCita.PROGRAMADA);
+
+                    botonCancelar.setEnabled(
+                            !operando
+                            && (cita.getEstado()
+                                    == EstadoCita.PROGRAMADA
+                            || cita.getEstado()
+                                    == EstadoCita.CONFIRMADA));
                 },
 
                 error -> {
@@ -312,7 +357,7 @@ public class PantallaCitasPaciente extends JPanel {
                     }
 
                     detalle.setText("");
-                    botonConfirmar.setEnabled(false);
+                    desactivarBotones();
                     mensaje.setText(
                             "Error: " + error.getMessage());
                 }
@@ -325,7 +370,7 @@ public class PantallaCitasPaciente extends JPanel {
 
         int fila = tabla.getSelectedRow();
 
-        if (confirmando || fila < 0
+        if (operando || fila < 0
                 || modelo.getValueAt(fila, 4)
                         != EstadoCita.PROGRAMADA) {
             return;
@@ -338,8 +383,8 @@ public class PantallaCitasPaciente extends JPanel {
             return;
         }
 
-        confirmando = true;
-        botonConfirmar.setEnabled(false);
+        operando = true;
+        desactivarBotones();
         mensaje.setText("Confirmando cita...");
 
         ejecutar(
@@ -347,7 +392,7 @@ public class PantallaCitasPaciente extends JPanel {
                         usuario, citaId),
 
                 confirmada -> {
-                    confirmando = false;
+                    operando = false;
 
                     actualizar(
                             citaId,
@@ -356,10 +401,68 @@ public class PantallaCitasPaciente extends JPanel {
                 },
 
                 error -> {
-                    confirmando = false;
+                    operando = false;
 
                     mensaje.setText(
                             "Error al confirmar: "
+                            + error.getMessage());
+
+                    mostrarSeleccion();
+                }
+        );
+    }
+
+    private void desactivarBotones() {
+        botonConfirmar.setEnabled(false);
+        botonCancelar.setEnabled(false);
+    }
+
+     //CU04: cancela la cita seleccionada. El servidor aplica las reglas
+     //de estado y de plazo.
+    private void cancelarSeleccion() {
+
+        int fila = tabla.getSelectedRow();
+
+        if (operando || fila < 0) {
+            return;
+        }
+
+        Object estado = modelo.getValueAt(fila, 4);
+
+        if (estado != EstadoCita.PROGRAMADA
+                && estado != EstadoCita.CONFIRMADA) {
+            return;
+        }
+
+        long citaId = ((Number)
+                modelo.getValueAt(fila, 0)).longValue();
+
+        if (!pedirCancelacion.test(this, citaId)) {
+            return;
+        }
+
+        operando = true;
+        desactivarBotones();
+        mensaje.setText("Cancelando cita...");
+
+        ejecutar(
+                () -> servicio.cancelarMiCita(
+                        usuario, citaId),
+
+                cancelada -> {
+                    operando = false;
+
+                    actualizar(
+                            citaId,
+                            "Cita " + citaId
+                            + " cancelada correctamente");
+                },
+
+                error -> {
+                    operando = false;
+
+                    mensaje.setText(
+                            "Error al cancelar: "
                             + error.getMessage());
 
                     mostrarSeleccion();

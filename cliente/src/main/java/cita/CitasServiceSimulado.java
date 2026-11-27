@@ -1,5 +1,7 @@
 package cita;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,6 +21,10 @@ public class CitasServiceSimulado
             new HashMap<>();
 
     private long siguienteId = 1;
+
+    //CU04: antelación mínima de cancelación (D-034, valor inicial 24 h)
+    private int cancelacionMinimaHoras = 24;
+    private Clock reloj = Clock.systemDefaultZone();
 
     public void vincularPaciente(
             String nombreUsuario,
@@ -170,4 +176,63 @@ public class CitasServiceSimulado
                 "No existe la cita con id " + citaId);
     }
 
+    //CU04: cambia el plazo mínimo de cancelación del servicio simulado
+    public void fijarCancelacionMinimaHoras(int horas) {
+        cancelacionMinimaHoras = horas;
+    }
+
+    //CU04: cambia el reloj del servicio simulado (para las pruebas)
+    public void fijarReloj(Clock nuevoReloj) {
+        reloj = nuevoReloj;
+    }
+
+    //CU04: cancela una cita propia con las mismas reglas que el servidor (D-038)
+    @Override
+    public synchronized Cita cancelarMiCita(
+            Usuario solicitante,
+            long citaId)
+            throws SinPermisoException,
+            PacienteNoVinculadoException,
+            CitaNoEncontradaException,
+            CitaNoModificableException,
+            CancelacionFueraDePlazoException {
+
+        // Reutilizamos las comprobaciones de CU01: rol, vinculación y propiedad de la cita.
+        Cita actual = consultarMiCita(
+                solicitante, citaId);
+
+        if (actual.getEstado() != EstadoCita.PROGRAMADA
+                && actual.getEstado() != EstadoCita.CONFIRMADA) {
+            throw new CitaNoModificableException(
+                    "La cita " + citaId + " está "
+                    + actual.getEstado()
+                    + " y no se puede modificar");
+        }
+
+        if (actual.getFechaHora() != null
+                && LocalDateTime.now(reloj).isAfter(
+                        actual.getFechaHora().minusHours(
+                                cancelacionMinimaHoras))) {
+            throw new CancelacionFueraDePlazoException(
+                    "La cita solo se puede cancelar con al menos "
+                    + cancelacionMinimaHoras
+                    + " horas de antelación");
+        }
+
+        // Actualizamos la cita guardada, no solo la copia obtenida durante la consulta.
+        for (Cita almacenada : citas) {
+
+            if (almacenada.getId() != null
+                    && almacenada.getId() == citaId) {
+
+                almacenada.setEstado(
+                        EstadoCita.CANCELADA);
+
+                return almacenada.copia();
+            }
+        }
+
+        throw new CitaNoEncontradaException(
+                "No existe la cita con id " + citaId);
+    }
 }

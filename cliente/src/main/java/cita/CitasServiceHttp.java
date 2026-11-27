@@ -21,7 +21,7 @@ import paciente.ServicioNoDisponibleException;
 import paciente.Usuario;
 
 /**
- * CU01 y CU02 - Comunicacion HTTP de citas
+ * CU01, CU02 y CU04 - Comunicacion HTTP de citas
  */
 public class CitasServiceHttp implements CitasService {
 
@@ -115,6 +115,26 @@ public class CitasServiceHttp implements CitasService {
         }
 
         return "Error HTTP " + respuesta.statusCode();
+    }
+
+    private String codigoError(
+            HttpResponse<String> respuesta) {
+
+        try {
+            var json = JsonParser.parseString(
+                    respuesta.body()).getAsJsonObject();
+
+            if (json.has("error")
+                    && !json.get("error").isJsonNull()) {
+
+                return json.get("error").getAsString();
+            }
+
+        } catch (RuntimeException e) {
+            // Sin JSON valido no hay codigo de error.
+        }
+
+        return "";
     }
 
     private void comprobarPermiso(
@@ -280,6 +300,59 @@ public class CitasServiceHttp implements CitasService {
         if (respuesta.statusCode() == 409) {
             throw new CitaNoConfirmableException(
                     mensajeError(respuesta));
+        }
+
+        if (respuesta.statusCode() != 200) {
+            comprobarOtrosErrores(respuesta);
+        }
+
+        return leerCita(respuesta.body());
+    }
+
+    @Override
+    public Cita cancelarMiCita(
+            Usuario solicitante,
+            long citaId)
+            throws SinPermisoException,
+            PacienteNoVinculadoException,
+            CitaNoEncontradaException,
+            CitaNoModificableException,
+            CancelacionFueraDePlazoException {
+
+        if (citaId <= 0) {
+            throw new IllegalArgumentException(
+                    "El identificador debe ser positivo");
+        }
+
+        HttpRequest peticion =
+                prepararPeticion(
+                        solicitante,
+                        "/citas/" + citaId + "/cancelar")
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+
+        HttpResponse<String> respuesta = enviar(peticion);
+
+        comprobarPermiso(respuesta);
+
+        if (respuesta.statusCode() == 404) {
+            throw new CitaNoEncontradaException(
+                    mensajeError(respuesta));
+        }
+
+        if (respuesta.statusCode() == 409) {
+
+            if (codigoError(respuesta)
+                    .equals("FUERA_DE_PLAZO")) {
+                throw new CancelacionFueraDePlazoException(
+                        mensajeError(respuesta));
+            }
+
+            if (codigoError(respuesta)
+                    .equals("NO_CANCELABLE")) {
+                throw new CitaNoModificableException(
+                        mensajeError(respuesta));
+            }
         }
 
         if (respuesta.statusCode() != 200) {

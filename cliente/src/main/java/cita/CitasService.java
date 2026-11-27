@@ -28,4 +28,14 @@ public interface CitasService {
             PacienteNoVinculadoException,
             CitaNoEncontradaException,
             CitaNoConfirmableException;
+
+   //CU04: cancelar una cita propia programada o confirmada
+   Cita cancelarMiCita(
+            Usuario solicitante,
+            long citaId)
+            throws SinPermisoException,
+            PacienteNoVinculadoException,
+            CitaNoEncontradaException,
+            CitaNoModificableException,
+            CancelacionFueraDePlazoException;
 }

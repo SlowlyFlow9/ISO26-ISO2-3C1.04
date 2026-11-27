@@ -65,6 +65,12 @@ class PantallaCitasAsincronaTest {
                 Usuario usuario, long citaId) {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public Cita cancelarMiCita(
+                Usuario usuario, long citaId) {
+            throw new UnsupportedOperationException();
+        }
     }
 
     @Test
