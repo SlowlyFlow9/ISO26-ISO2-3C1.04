@@ -1,5 +1,7 @@
 package cita;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import paciente.ControlAcceso;
@@ -12,13 +14,32 @@ public class CitasServiceImpl
 
     private final CitasRepositorio repositorio;
     private final IdentidadPaciente identidadPaciente;
+    private final CitasAdministracionServiceImpl administracion;
+    private final PoliticaCitaRepositorio politicas;
+    private final Clock reloj;
 
     public CitasServiceImpl(
             CitasRepositorio repositorio,
-            IdentidadPaciente identidadPaciente) {
+            IdentidadPaciente identidadPaciente,
+            CitasAdministracionServiceImpl administracion,
+            PoliticaCitaRepositorio politicas) {
+
+        this(repositorio, identidadPaciente, administracion,
+                politicas, Clock.systemDefaultZone());
+    }
+
+    public CitasServiceImpl(
+            CitasRepositorio repositorio,
+            IdentidadPaciente identidadPaciente,
+            CitasAdministracionServiceImpl administracion,
+            PoliticaCitaRepositorio politicas,
+            Clock reloj) {
 
         this.repositorio = repositorio;
         this.identidadPaciente = identidadPaciente;
+        this.administracion = administracion;
+        this.politicas = politicas;
+        this.reloj = reloj;
     }
 
     @Override
@@ -108,6 +129,53 @@ public class CitasServiceImpl
 
         //Guardar el cambio y devolver una copia.
         return repositorio.guardar(confirmada).copia();
+    }
+
+    //CU04: Cancela una cita del propio paciente (D-038).
+    @Override
+    public synchronized Cita cancelarMiCita(
+            Usuario solicitante,
+            long citaId)
+            throws SinPermisoException,
+            PacienteNoVinculadoException,
+            CitaNoEncontradaException,
+            CitaNoModificableException,
+            CancelacionFueraDePlazoException {
+
+        //Comprobar el usuario y que la cita sea suya
+        Cita actual = consultarMiCita(solicitante, citaId);
+
+        //El plazo solo importa si la cita se puede cancelar;
+        //si no, cancelarCita informa del estado.
+        if (actual.getEstado() == EstadoCita.PROGRAMADA
+                || actual.getEstado() == EstadoCita.CONFIRMADA) {
+            exigirPlazo(actual);
+        }
+
+        //Misma cancelación que CU25: cita CANCELADA, hueco libre
+        //y solicitud de nuevo pendiente de citación.
+        return administracion.cancelarCita(citaId);
+    }
+
+    //D-034: la cancelación exige una antelación mínima en horas.
+    private void exigirPlazo(Cita cita)
+            throws CancelacionFueraDePlazoException {
+
+        if (cita.getFechaHora() == null) {
+            return;
+        }
+
+        int horas = politicas.consultar()
+                .getCancelacionMinimaHoras();
+
+        LocalDateTime limite =
+                cita.getFechaHora().minusHours(horas);
+
+        if (LocalDateTime.now(reloj).isAfter(limite)) {
+            throw new CancelacionFueraDePlazoException(
+                    "La cita solo se puede cancelar con al menos "
+                    + horas + " horas de antelación");
+        }
     }
 
 }

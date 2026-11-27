@@ -52,7 +52,7 @@ class CitasServiceImplTest {
                 20L);
 
         servicio =
-                new CitasServiceImpl(
+                ServiciosCitasPrueba.citas(
                         repositorio,
                         identidad);
 

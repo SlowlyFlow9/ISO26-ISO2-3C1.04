@@ -148,6 +148,17 @@ public class CitasAdministracionServiceImpl
 
         exigirPermiso(solicitante);
 
+        return cancelarCita(citaId);
+    }
+
+    /**
+     * Cancela la cita sin comprobar el rol; la usan CU25 y CU04, que
+     * comprueban cada uno el permiso de su actor.
+     */
+    synchronized Cita cancelarCita(long citaId)
+            throws CitaNoEncontradaException,
+            CitaNoModificableException {
+
         Cita actual = buscarCitaModificable(citaId);
 
         Cita cancelada = actual.copia();

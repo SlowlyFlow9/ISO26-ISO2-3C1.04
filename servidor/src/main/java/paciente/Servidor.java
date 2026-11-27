@@ -22,6 +22,7 @@ import agenda.HuecosAgendaServidorHttp;
 import solicitud.ListaEsperaService;
 import solicitud.ListaEsperaServiceImpl;
 import cita.Cita;
+import cita.CitasAdministracionServiceImpl;
 import cita.CitasRepositorioMemoria;
 import cita.CitasService;
 import cita.CitasServiceImpl;
@@ -167,11 +168,23 @@ public class Servidor {
 
         ListaEsperaService servicioListaEspera =
                 new ListaEsperaServiceImpl(solicitudes);
-        // CU01 y CU02: consulta y confirmación de citas.
+        // CU04: la cancelación del paciente reutiliza la lógica de CU25.
+        CitasAdministracionServiceImpl administracionCitas =
+                new CitasAdministracionServiceImpl(
+                        citas,
+                        solicitudes,
+                        pacientes,
+                        agendas,
+                        huecos
+                );
+
+        // CU01, CU02 y CU04: consulta, confirmación y cancelación de citas.
         CitasService servicioCitas =
                 new CitasServiceImpl(
                         citas,
-                        identidadPaciente
+                        identidadPaciente,
+                        administracionCitas,
+                        politicaCita
                 );
 
         // CU29: servicio de gestión de huecos.
@@ -251,6 +264,7 @@ public class Servidor {
         System.out.println("/citas");
         System.out.println("/citas/{id}");
         System.out.println("/citas/{id}/confirmar");
+        System.out.println("/citas/{id}/cancelar");
         System.out.println("/politicas-citacion");
     }
 }

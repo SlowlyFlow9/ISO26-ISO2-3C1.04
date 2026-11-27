@@ -51,7 +51,7 @@ class CitasServidorHttpTest {
 
         CitasServidorHttp.registrar(
                 servidor,
-                new CitasServiceImpl(
+                ServiciosCitasPrueba.citas(
                         repositorio, identidad));
     }
 
