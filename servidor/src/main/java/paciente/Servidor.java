@@ -27,9 +27,12 @@ import cita.CitasService;
 import cita.CitasServiceImpl;
 import cita.CitasRealizacionService;
 import cita.CitasRealizacionServiceImpl;
+import cita.CitasIncidenciasService;
+import cita.CitasIncidenciasServiceImpl;
 import cita.CitasServidorHttp;
 import cita.EstadoCita;
 import cita.IdentidadPacienteMemoria;
+import cita.IncidenciasRepositorioMemoria;
 import cita.PoliticaCitaRepositorioMemoria;
 import cita.PoliticaCitaService;
 import cita.PoliticaCitaServiceImpl;
@@ -66,6 +69,8 @@ public class Servidor {
         // CU01 y CU02: repositorio compartido de citas.
         CitasRepositorioMemoria citas =
                 new CitasRepositorioMemoria();
+        IncidenciasRepositorioMemoria incidencias =
+                new IncidenciasRepositorioMemoria();
 
         IdentidadPacienteMemoria identidadPaciente =
                 new IdentidadPacienteMemoria();
@@ -181,6 +186,11 @@ public class Servidor {
                         citas,
                         solicitudes
                 );
+        CitasIncidenciasService servicioIncidencias =
+                new CitasIncidenciasServiceImpl(
+                        citas,
+                        incidencias
+                );
 
         // CU29: servicio de gestión de huecos.
         HuecosAgendaService servicioHuecos =
@@ -237,7 +247,8 @@ public class Servidor {
         CitasServidorHttp.registrar(
                 http,
                 servicioCitas,
-                servicioCitasMedico
+                servicioCitasMedico,
+                servicioIncidencias
         );
 
         // CU36: registrar la configuracion de politicas de citacion.
@@ -261,6 +272,7 @@ public class Servidor {
         System.out.println("/citas/{id}");
         System.out.println("/citas/{id}/confirmar");
         System.out.println("/citas/{id}/realizar");
+        System.out.println("/citas/{id}/incidencias");
         System.out.println("/politicas-citacion");
     }
 }

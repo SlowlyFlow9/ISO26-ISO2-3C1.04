@@ -30,12 +30,14 @@ class CitasServidorHttpTest {
 
     private CitasRepositorioMemoria repositorio;
     private SolicitudesRepositorioMemoria solicitudes;
+    private IncidenciasRepositorioMemoria incidencias;
 
     @BeforeEach
     void preparar() throws Exception {
 
         repositorio = new CitasRepositorioMemoria();
         solicitudes = new SolicitudesRepositorioMemoria();
+        incidencias = new IncidenciasRepositorioMemoria();
 
         IdentidadPacienteMemoria identidad =
                 new IdentidadPacienteMemoria();
@@ -57,7 +59,9 @@ class CitasServidorHttpTest {
                 new CitasServiceImpl(
                         repositorio, identidad),
                 new CitasRealizacionServiceImpl(
-                        repositorio, solicitudes));
+                        repositorio, solicitudes),
+                new CitasIncidenciasServiceImpl(
+                        repositorio, incidencias));
     }
 
     @AfterEach
@@ -87,7 +91,7 @@ class CitasServidorHttpTest {
             String metodo,
             String usuario,
             String rol) throws Exception {
-        return pedir(ruta, metodo, usuario, rol, null);
+        return pedir(ruta, metodo, usuario, rol, null, null);
     }
 
     private HttpResponse<String> pedir(
@@ -96,6 +100,16 @@ class CitasServidorHttpTest {
             String usuario,
             String rol,
             String medicoId) throws Exception {
+        return pedir(ruta, metodo, usuario, rol, medicoId, null);
+    }
+
+    private HttpResponse<String> pedir(
+            String ruta,
+            String metodo,
+            String usuario,
+            String rol,
+            String medicoId,
+            String cuerpo) throws Exception {
 
         String url = "http://127.0.0.1:"
                 + servidor.getAddress().getPort()
@@ -116,7 +130,14 @@ class CitasServidorHttpTest {
         }
 
         if ("POST".equals(metodo)) {
-            peticion.POST(HttpRequest.BodyPublishers.noBody());
+            if (cuerpo == null) {
+                peticion.POST(HttpRequest.BodyPublishers.noBody());
+            } else {
+                peticion.header(
+                        "Content-Type", "application/json");
+                peticion.POST(
+                        HttpRequest.BodyPublishers.ofString(cuerpo));
+            }
         } else if ("GET".equals(metodo)) {
             peticion.GET();
         } else {
@@ -306,6 +327,49 @@ class CitasServidorHttpTest {
                 EstadoCita.PROGRAMADA,
                 repositorio.buscarPorId(1L)
                         .orElseThrow().getEstado());
+    }
+
+    @Test
+    void medicoPuedeRegistrarYConsultarIncidencias()
+            throws Exception {
+        var creada = pedir(
+                "/citas/1/incidencias",
+                "POST",
+                "medico1",
+                "MEDICO",
+                "30",
+                "{\"descripcion\":\"Dolor\"}");
+
+        assertEquals(201, creada.statusCode());
+        assertTrue(creada.body()
+                .contains("\"descripcion\":\"Dolor\""));
+        assertTrue(creada.body()
+                .contains("\"medicoId\":30"));
+
+        var historial = pedir(
+                "/citas/1/incidencias",
+                "GET",
+                "medico1",
+                "MEDICO",
+                "30");
+        assertEquals(200, historial.statusCode());
+        assertTrue(historial.body()
+                .contains("\"descripcion\":\"Dolor\""));
+    }
+
+    @Test
+    void rechazarIncidenciaSinDescripcion()
+            throws Exception {
+        var respuesta = pedir(
+                "/citas/1/incidencias",
+                "POST",
+                "medico1",
+                "MEDICO",
+                "30",
+                "{\"descripcion\":\"  \"}");
+
+        assertEquals(400, respuesta.statusCode());
+        assertTrue(incidencias.listarPorCita(1L).isEmpty());
     }
 
 }

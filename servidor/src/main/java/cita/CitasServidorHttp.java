@@ -6,7 +6,10 @@ import java.time.LocalDateTime;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializer;
 import com.sun.net.httpserver.HttpExchange;
@@ -23,6 +26,8 @@ import paciente.Usuario;
  * GET  /citas/{id}
  * POST /citas/{id}/confirmar
  * POST /citas/{id}/realizar
+ * GET  /citas/{id}/incidencias
+ * POST /citas/{id}/incidencias
  */
 
 public final class CitasServidorHttp {
@@ -42,13 +47,25 @@ public final class CitasServidorHttp {
             HttpServer servidor,
             CitasService servicio) {
 
-        registrar(servidor, servicio, null);
+        registrar(servidor, servicio, null, null);
     }
 
     public static void registrar(
             HttpServer servidor,
             CitasService servicio,
             CitasRealizacionService servicioRealizacion) {
+        registrar(
+                servidor,
+                servicio,
+                servicioRealizacion,
+                null);
+    }
+
+    public static void registrar(
+            HttpServer servidor,
+            CitasService servicio,
+            CitasRealizacionService servicioRealizacion,
+            CitasIncidenciasService servicioIncidencias) {
 
         if (servidor == null || servicio == null) {
             throw new IllegalArgumentException(
@@ -58,7 +75,11 @@ public final class CitasServidorHttp {
         servidor.createContext("/citas", exchange -> {
 
             try {
-                atender(exchange, servicio, servicioRealizacion);
+                atender(
+                        exchange,
+                        servicio,
+                        servicioRealizacion,
+                        servicioIncidencias);
 
             } catch (SinPermisoException
                     | PacienteNoVinculadoException e) {
@@ -82,6 +103,17 @@ public final class CitasServidorHttp {
                 responder(exchange, 409,
                         error("NO_REALIZABLE", e.getMessage()));
 
+            } catch (CitaNoIncidenciableException e) {
+
+                responder(exchange, 409,
+                        error("NO_INCIDENCIABLE", e.getMessage()));
+
+            } catch (JsonParseException e) {
+
+                responder(exchange, 400,
+                        error("DATOS_INVALIDOS",
+                                "El cuerpo de la petición no es JSON válido"));
+
             } catch (IllegalArgumentException e) {
 
                 responder(exchange, 400,
@@ -99,13 +131,15 @@ public final class CitasServidorHttp {
     private static void atender(
             HttpExchange exchange,
             CitasService servicio,
-            CitasRealizacionService servicioRealizacion)
+            CitasRealizacionService servicioRealizacion,
+            CitasIncidenciasService servicioIncidencias)
             throws IOException, SinPermisoException,
             PacienteNoVinculadoException,
             CitaNoEncontradaException,
             CitaNoConfirmableException,
             CitaNoRealizableException,
-            SolicitudNoEncontradaException {
+            SolicitudNoEncontradaException,
+            CitaNoIncidenciableException {
 
         String ruta =
                 exchange.getRequestURI().getPath();
@@ -178,6 +212,35 @@ public final class CitasServidorHttp {
                 return;
             }
 
+            if (partes.length == 4
+                    && partes[3].equals("incidencias")) {
+                if (servicioIncidencias == null) {
+                    responder(exchange, 404,
+                            error("NO_ENCONTRADA", null));
+                    return;
+                }
+
+                if (metodo.equals("GET")) {
+                    responder(exchange, 200,
+                            GSON.toJson(
+                                    servicioIncidencias.listarIncidencias(
+                                            usuario, citaId)));
+                    return;
+                }
+                if (metodo.equals("POST")) {
+                    IncidenciaCita incidencia =
+                            servicioIncidencias.registrarIncidencia(
+                                    usuario,
+                                    citaId,
+                                    leerDescripcion(exchange));
+                    responder(exchange, 201, GSON.toJson(incidencia));
+                    return;
+                }
+                responder(exchange, 405,
+                        error("METODO_NO_PERMITIDO", null));
+                return;
+            }
+
             //CU02: Confirmar una cita propia.
             if (partes.length == 4
                     && partes[3].equals("confirmar")) {
@@ -200,6 +263,28 @@ public final class CitasServidorHttp {
 
         responder(exchange, 404,
                 error("NO_ENCONTRADA", null));
+    }
+
+    private static String leerDescripcion(
+            HttpExchange exchange) throws IOException {
+        String cuerpo = new String(
+                exchange.getRequestBody().readAllBytes(),
+                StandardCharsets.UTF_8);
+        JsonElement elemento = JsonParser.parseString(cuerpo);
+        if (!elemento.isJsonObject()) {
+            throw new IllegalArgumentException(
+                    "El cuerpo debe ser un objeto JSON");
+        }
+
+        JsonObject json = elemento.getAsJsonObject();
+        JsonElement descripcion = json.get("descripcion");
+        if (descripcion == null
+                || !descripcion.isJsonPrimitive()
+                || !descripcion.getAsJsonPrimitive().isString()) {
+            throw new IllegalArgumentException(
+                    "La descripción de la incidencia es obligatoria");
+        }
+        return descripcion.getAsString();
     }
 
     private static Usuario leerUsuario(

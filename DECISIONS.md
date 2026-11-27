@@ -248,6 +248,15 @@ Motivo: limitar la transición a citas vigentes y evitar inconsistencias entre l
 Consecuencias: el servidor expone `POST /citas/{id}/realizar`. Los cambios de estado se guardan mediante los repositorios existentes y quedan pendientes de ratificación formal por el equipo.
 Pendiente de acordar: la aprobación formal del equipo.
 
+## D-035 · Registro de incidencias en pruebas (CU20)
+Fecha: 27/11/2026 · It. 5 · Acta: 9 · Issue: #170, #174, #175
+Contexto: CU20 permite al médico documentar incidencias asociadas a una cita, manteniendo el historial y evitando que el cliente determine quién y cuándo las registró.
+Decisión: solo el médico asignado a la cita puede registrar o consultar sus incidencias. Se aceptan todos los estados salvo `CANCELADA`; registrar una incidencia no cambia el estado de la cita. Cada envío crea una incidencia independiente, con descripción obligatoria y fecha y médico asignados por el servidor.
+Alternativas: sobrescribir la incidencia previa; aceptar fecha y médico desde el cliente; modificar el estado de la cita al registrar una incidencia.
+Motivo: conservar el historial y evitar que el cliente altere los datos de auditoría de la incidencia.
+Consecuencias: se exponen `POST /citas/{id}/incidencias` y `GET /citas/{id}/incidencias`; los registros se almacenan en memoria, de acuerdo con D-024.
+Pendiente de acordar: la aprobación formal del equipo y la longitud máxima de la descripción.
+
 
 ## D-034 · Configuración de las políticas de citación (CU36)
 Fecha: 23/11/2026 · It. 5 · Acta: 7 · Issue: #137, #138, #139
