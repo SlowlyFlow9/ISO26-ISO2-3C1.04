@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import paciente.Rol;
 import paciente.Usuario;
 
-/** CU13 - Cliente: reglas de la gestión de solicitudes en el servicio simulado (D-031 y D-032). */
+/** CU13 - Cliente: reglas de la gestión de solicitudes en el servicio simulado (D-031 y D-036). */
 class SolicitudesServiceSimuladoGestionTest {
 
     private static final Usuario MEDICO = new Usuario("medico", Rol.MEDICO);

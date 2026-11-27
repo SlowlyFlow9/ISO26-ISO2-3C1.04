@@ -244,7 +244,7 @@ private void comprobarRespuesta(
         }
     }
 
-    // ---- CU13: gestion de solicitudes (D-033) ----
+    // ---- CU13: gestion de solicitudes (D-037) ----
 
     private static final String NO_ENCONTRADA =
             "No se ha encontrado la solicitud.";

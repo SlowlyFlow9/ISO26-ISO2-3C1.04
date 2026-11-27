@@ -14,7 +14,7 @@ import tipoprueba.TipoPrueba;
 
 /**
  * Servicio de solicitudes en memoria para usar el cliente sin el servidor.
- * Aplica las mismas reglas que el servidor del CU13 (D-031 y D-032) y lanza
+ * Aplica las mismas reglas que el servidor del CU13 (D-031 y D-036) y lanza
  * las mismas excepciones que SolicitudesServiceHttp.
  */
 public class SolicitudesServiceSimulado implements SolicitudesService {

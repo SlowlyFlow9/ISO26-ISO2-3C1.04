@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import paciente.Rol;
 import paciente.Usuario;
 
-/** CU13: el cliente HTTP usa las rutas de la gestión de solicitudes (D-033). */
+/** CU13: el cliente HTTP usa las rutas de la gestión de solicitudes (D-037). */
 class SolicitudesServiceHttpGestionTest {
     private static final Usuario MEDICO = new Usuario("medico", Rol.MEDICO);
 
