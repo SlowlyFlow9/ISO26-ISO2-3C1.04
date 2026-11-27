@@ -22,15 +22,14 @@ import paciente.SinPermisoException;
 import paciente.Usuario;
 
 public class ImagenesServiceHttp
-        implements ImagenesService {
+        implements ImagenesService, ImagenesCreacionService {
 
     private static final Gson GSON = new GsonBuilder()
             .registerTypeAdapter(
                     LocalDateTime.class,
                     (JsonDeserializer<LocalDateTime>)
                     (json, tipo, contexto) ->
-                            LocalDateTime.parse(
-                                    json.getAsString()))
+                            LocalDateTime.parse(json.getAsString()))
             .create();
 
     private final HttpClient http;
@@ -54,7 +53,7 @@ public class ImagenesServiceHttp
                 .build();
     }
 
-    private HttpRequest prepararPeticion(
+    private HttpRequest.Builder prepararPeticion(
             Usuario usuario,
             String ruta) throws SinPermisoException {
 
@@ -84,7 +83,7 @@ public class ImagenesServiceHttp
                     usuario.medicoId().toString());
         }
 
-        return peticion.GET().build();
+        return peticion;
     }
 
     private HttpResponse<String> enviar(
@@ -174,6 +173,7 @@ public class ImagenesServiceHttp
         }
     }
 
+    // CU17 - Consultar listado de imágenes.
     @Override
     public List<ResumenImagenPrueba> listar(
             Usuario solicitante,
@@ -186,7 +186,9 @@ public class ImagenesServiceHttp
         HttpResponse<String> respuesta = enviar(
                 prepararPeticion(
                         solicitante,
-                        "/imagenes?solicitudId=" + solicitudId));
+                        "/imagenes?solicitudId=" + solicitudId)
+                        .GET()
+                        .build());
 
         if (respuesta.statusCode() == 404) {
 
@@ -233,6 +235,7 @@ public class ImagenesServiceHttp
         }
     }
 
+    // CU17 - Consultar una imagen.
     @Override
     public ImagenPrueba consultar(
             Usuario solicitante,
@@ -246,7 +249,9 @@ public class ImagenesServiceHttp
         HttpResponse<String> respuesta = enviar(
                 prepararPeticion(
                         solicitante,
-                        "/imagenes/" + imagenId));
+                        "/imagenes/" + imagenId)
+                        .GET()
+                        .build());
 
         if (respuesta.statusCode() == 404) {
 
@@ -291,6 +296,96 @@ public class ImagenesServiceHttp
 
             throw new ServicioNoDisponibleException(
                     "La respuesta de imagen no es válida", e);
+        }
+    }
+
+    // CU18 - Registrar una imagen.
+    @Override
+    public ResumenImagenPrueba crear(
+            Usuario solicitante,
+            DatosCreacionImagen datos)
+            throws SinPermisoException,
+            SolicitudImagenNoEncontradaException,
+            DatosImagenInvalidosException {
+
+        if (solicitante == null
+                || solicitante.medicoId() == null
+                || solicitante.medicoId() <= 0) {
+
+            throw new SinPermisoException(
+                    "El médico debe estar identificado");
+        }
+
+        HttpRequest.Builder peticion =
+                prepararPeticion(solicitante, "/imagenes");
+
+        if (datos == null || datos.solicitudId() <= 0) {
+
+            throw new DatosImagenInvalidosException(
+                    "Los datos de la imagen no son válidos");
+        }
+
+        HttpResponse<String> respuesta = enviar(
+                peticion
+                        .timeout(Duration.ofSeconds(30))
+                        .header(
+                                "Content-Type",
+                                "application/json; charset=utf-8")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                GSON.toJson(datos)))
+                        .build());
+
+        int estado = respuesta.statusCode();
+
+        if (estado == 403) {
+
+            throw new SinPermisoException(
+                    mensajeError(respuesta));
+        }
+
+        if (estado == 404) {
+
+            throw new SolicitudImagenNoEncontradaException(
+                    mensajeError(respuesta));
+        }
+
+        if (estado == 400 || estado == 413 || estado == 415) {
+
+            throw new DatosImagenInvalidosException(
+                    mensajeError(respuesta));
+        }
+
+        if (estado != 201) {
+
+            throw new ServicioNoDisponibleException(
+                    mensajeError(respuesta));
+        }
+
+        try {
+
+            ResumenImagenPrueba imagen = GSON.fromJson(
+                    respuesta.body(),
+                    ResumenImagenPrueba.class);
+
+            if (imagen == null
+                    || imagen.id() <= 0
+                    || imagen.solicitudId() != datos.solicitudId()
+                    || imagen.medicoId() != solicitante.medicoId()
+                    || imagen.nombre() == null
+                    || imagen.nombre().isBlank()
+                    || imagen.tipoContenido() == null
+                    || imagen.fechaCreacion() == null) {
+
+                throw new JsonParseException(
+                        "Datos de imagen incorrectos");
+            }
+
+            return imagen;
+
+        } catch (RuntimeException e) {
+
+            throw new ServicioNoDisponibleException(
+                    "La respuesta de creación no es válida", e);
         }
     }
 }
