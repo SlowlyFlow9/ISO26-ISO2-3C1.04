@@ -265,6 +265,8 @@ public class Servidor {
         System.out.println("/citas/{id}");
         System.out.println("/citas/{id}/confirmar");
         System.out.println("/citas/{id}/cancelar");
+        System.out.println("/citas/huecos-libres");
+        System.out.println("/citas/{id}/cambiar");
         System.out.println("/politicas-citacion");
     }
 }

@@ -7,22 +7,27 @@ import java.time.LocalDateTime;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializer;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
+import agenda.AgendaNoEncontradaException;
+import agenda.HuecoAgendaNoEncontradoException;
 import paciente.Rol;
 import paciente.SinPermisoException;
 import paciente.Usuario;
 
 /**
- * CU01, CU02 y CU04 - Comunicacion HTTP de citas del paciente.
+ * CU01, CU02, CU03 y CU04 - Comunicacion HTTP de citas del paciente.
  *
  * GET  /citas
+ * GET  /citas/huecos-libres
  * GET  /citas/{id}
  * POST /citas/{id}/confirmar
  * POST /citas/{id}/cancelar
+ * POST /citas/{id}/cambiar   (cuerpo {"huecoId": n})
  */
 
 public final class CitasServidorHttp {
@@ -78,6 +83,22 @@ public final class CitasServidorHttp {
                 responder(exchange, 409,
                         error("FUERA_DE_PLAZO", e.getMessage()));
 
+            } catch (HuecoAgendaNoEncontradoException
+                    | AgendaNoEncontradaException e) {
+
+                responder(exchange, 404,
+                        error("HUECO_NO_ENCONTRADO", e.getMessage()));
+
+            } catch (HuecoNoDisponibleException e) {
+
+                responder(exchange, 409,
+                        error("HUECO_NO_DISPONIBLE", e.getMessage()));
+
+            } catch (CambioFueraDePoliticaException e) {
+
+                responder(exchange, 409,
+                        error("FUERA_DE_POLITICA", e.getMessage()));
+
             } catch (IllegalArgumentException e) {
 
                 responder(exchange, 400,
@@ -100,7 +121,11 @@ public final class CitasServidorHttp {
             CitaNoEncontradaException,
             CitaNoConfirmableException,
             CitaNoModificableException,
-            CancelacionFueraDePlazoException {
+            CancelacionFueraDePlazoException,
+            HuecoAgendaNoEncontradoException,
+            AgendaNoEncontradaException,
+            HuecoNoDisponibleException,
+            CambioFueraDePoliticaException {
 
         String ruta =
                 exchange.getRequestURI().getPath();
@@ -122,6 +147,21 @@ public final class CitasServidorHttp {
             responder(exchange, 200,
                     GSON.toJson(
                             servicio.listarMisCitas(paciente)));
+            return;
+        }
+
+        //CU03: huecos libres que el paciente puede elegir.
+        if (ruta.equals("/citas/huecos-libres")) {
+
+            if (!metodo.equals("GET")) {
+                responder(exchange, 405,
+                        error("METODO_NO_PERMITIDO", null));
+                return;
+            }
+
+            responder(exchange, 200,
+                    GSON.toJson(
+                            servicio.listarHuecosLibres(paciente)));
             return;
         }
 
@@ -172,6 +212,32 @@ public final class CitasServidorHttp {
                 return;
             }
 
+            //CU03: Cambiar una cita propia a otro hueco.
+            if (partes.length == 4
+                    && partes[3].equals("cambiar")) {
+
+                if (!metodo.equals("POST")) {
+                    responder(exchange, 405,
+                            error("METODO_NO_PERMITIDO", null));
+                    return;
+                }
+
+                long huecoId = leerHuecoId(exchange);
+
+                try {
+                    responder(exchange, 200,
+                            GSON.toJson(
+                                    servicio.cambiarMiCita(
+                                            paciente, citaId,
+                                            huecoId)));
+
+                } catch (CitaNoModificableException e) {
+                    responder(exchange, 409,
+                            error("NO_CAMBIABLE", e.getMessage()));
+                }
+                return;
+            }
+
             //CU04: Cancelar una cita propia.
             if (partes.length == 4
                     && partes[3].equals("cancelar")) {
@@ -192,6 +258,36 @@ public final class CitasServidorHttp {
 
         responder(exchange, 404,
                 error("NO_ENCONTRADA", null));
+    }
+
+    //CU03: lee el hueco nuevo del cuerpo {"huecoId": n}.
+    private static long leerHuecoId(
+            HttpExchange exchange)
+            throws IOException {
+
+        String cuerpo = new String(
+                exchange.getRequestBody().readAllBytes(),
+                StandardCharsets.UTF_8);
+
+        long huecoId;
+
+        try {
+            huecoId = JsonParser.parseString(cuerpo)
+                    .getAsJsonObject()
+                    .get("huecoId")
+                    .getAsLong();
+
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException(
+                    "El cuerpo debe ser {\"huecoId\": n}");
+        }
+
+        if (huecoId <= 0) {
+            throw new IllegalArgumentException(
+                    "El ID de hueco debe ser positivo");
+        }
+
+        return huecoId;
     }
 
     private static Usuario leerUsuario(

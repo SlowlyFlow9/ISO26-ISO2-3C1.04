@@ -4,6 +4,8 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import agenda.AgendaNoEncontradaException;
+import agenda.HuecoAgendaNoEncontradoException;
 import paciente.ControlAcceso;
 import paciente.Rol;
 import paciente.SinPermisoException;
@@ -155,6 +157,105 @@ public class CitasServiceImpl
         //Misma cancelación que CU25: cita CANCELADA, hueco libre
         //y solicitud de nuevo pendiente de citación.
         return administracion.cancelarCita(citaId);
+    }
+
+    //CU03: huecos libres que cumplen la política de citación (D-039).
+    @Override
+    public List<HuecoLibre> listarHuecosLibres(
+            Usuario solicitante)
+            throws SinPermisoException,
+            PacienteNoVinculadoException {
+
+        ControlAcceso.exigir(
+                solicitante,
+                Rol.PACIENTE);
+
+        identidadPaciente.obtenerPacienteId(solicitante);
+
+        PoliticaCita politica = politicas.consultar();
+        LocalDateTime ahora = LocalDateTime.now(reloj);
+
+        return administracion.huecosLibres().stream()
+                .filter(hueco -> !hueco.fechaHora().isBefore(
+                        ahora.plusHours(
+                                politica.getAntelacionMinimaHoras()))
+                        && !hueco.fechaHora().isAfter(
+                        ahora.plusDays(
+                                politica.getAntelacionMaximaDias())))
+                .toList();
+    }
+
+    //CU03: Cambia una cita del propio paciente a otro hueco libre (D-039).
+    @Override
+    public synchronized Cita cambiarMiCita(
+            Usuario solicitante,
+            long citaId,
+            long nuevoHuecoId)
+            throws SinPermisoException,
+            PacienteNoVinculadoException,
+            CitaNoEncontradaException,
+            CitaNoModificableException,
+            HuecoAgendaNoEncontradoException,
+            AgendaNoEncontradaException,
+            HuecoNoDisponibleException,
+            CambioFueraDePoliticaException {
+
+        //Comprobar el usuario y que la cita sea suya
+        Cita actual = consultarMiCita(solicitante, citaId);
+
+        //Si la cita está cerrada, reprogramarCita informa del estado.
+        if (actual.getEstado() == EstadoCita.PROGRAMADA
+                || actual.getEstado() == EstadoCita.CONFIRMADA) {
+
+            LocalDateTime nuevaFecha =
+                    administracion.fechaHoraDeHuecoLibre(
+                            nuevoHuecoId);
+
+            exigirPoliticaDeCambio(actual, nuevaFecha);
+        }
+
+        //Misma reprogramación que CU25: hueco nuevo ocupado,
+        //hueco anterior libre y cita de nuevo PROGRAMADA.
+        return administracion.reprogramarCita(
+                citaId, nuevoHuecoId);
+    }
+
+    //D-034: el cambio respeta el plazo de cancelación de la cita actual
+    //y la antelación mínima y la ventana máxima del hueco nuevo.
+    private void exigirPoliticaDeCambio(
+            Cita actual,
+            LocalDateTime nuevaFecha)
+            throws CambioFueraDePoliticaException {
+
+        PoliticaCita politica = politicas.consultar();
+        LocalDateTime ahora = LocalDateTime.now(reloj);
+
+        int horasCancelacion =
+                politica.getCancelacionMinimaHoras();
+
+        if (actual.getFechaHora() != null
+                && ahora.isAfter(actual.getFechaHora()
+                        .minusHours(horasCancelacion))) {
+            throw new CambioFueraDePoliticaException(
+                    "La cita solo se puede cambiar con al menos "
+                    + horasCancelacion + " horas de antelación");
+        }
+
+        int horasMinimas = politica.getAntelacionMinimaHoras();
+
+        if (nuevaFecha.isBefore(ahora.plusHours(horasMinimas))) {
+            throw new CambioFueraDePoliticaException(
+                    "El nuevo hueco debe empezar con al menos "
+                    + horasMinimas + " horas de antelación");
+        }
+
+        int diasMaximos = politica.getAntelacionMaximaDias();
+
+        if (nuevaFecha.isAfter(ahora.plusDays(diasMaximos))) {
+            throw new CambioFueraDePoliticaException(
+                    "El nuevo hueco no puede estar a más de "
+                    + diasMaximos + " días");
+        }
     }
 
     //D-034: la cancelación exige una antelación mínima en horas.

@@ -3,6 +3,8 @@ package cita;
 
 import java.util.List;
 
+import agenda.AgendaNoEncontradaException;
+import agenda.HuecoAgendaNoEncontradoException;
 import paciente.SinPermisoException;
 import paciente.Usuario;
 
@@ -40,4 +42,24 @@ public interface CitasService {
             CitaNoEncontradaException,
             CitaNoModificableException,
             CancelacionFueraDePlazoException;
+
+    //CU03: Consultar los huecos libres que el paciente puede elegir
+    List<HuecoLibre> listarHuecosLibres(
+            Usuario solicitante)
+            throws SinPermisoException,
+            PacienteNoVinculadoException;
+
+    //CU03: Cambiar una cita propia a otro hueco libre
+    Cita cambiarMiCita(
+            Usuario solicitante,
+            long citaId,
+            long nuevoHuecoId)
+            throws SinPermisoException,
+            PacienteNoVinculadoException,
+            CitaNoEncontradaException,
+            CitaNoModificableException,
+            HuecoAgendaNoEncontradoException,
+            AgendaNoEncontradaException,
+            HuecoNoDisponibleException,
+            CambioFueraDePoliticaException;
 }
