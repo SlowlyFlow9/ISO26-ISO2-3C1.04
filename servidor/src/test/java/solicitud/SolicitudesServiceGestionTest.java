@@ -24,7 +24,7 @@ import paciente.SinPermisoException;
 import paciente.Usuario;
 import tipoprueba.RepositorioTiposPruebaMemoria;
 
-/** CU13 - Servidor: consulta, modificación y anulación de solicitudes (D-031 y D-032). */
+/** CU13 - Servidor: consulta, modificación y anulación de solicitudes (D-031 y D-036). */
 class SolicitudesServiceGestionTest {
 
     private static final Usuario MEDICO = new Usuario("medico", Rol.MEDICO);

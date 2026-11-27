@@ -169,7 +169,7 @@ public class SolicitudesServiceImpl implements SolicitudesService {
         return solicitudes.guardar(nueva);
     }
 
-    // ---- CU13: gestion de solicitudes (D-031 y D-032) ----
+    // ---- CU13: gestion de solicitudes (D-031 y D-036) ----
 
     //Orden del listado: primero por prioridad (urgente, preferente, ordinaria) y despues por fecha de solicitud
     private static final Comparator<SolicitudPrueba> ORDEN =

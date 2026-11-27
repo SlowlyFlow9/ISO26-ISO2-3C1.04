@@ -211,13 +211,14 @@ Motivo: reutilizar la entidad cumple D-018. El enumerado evita valores no recono
 Consecuencias: `SolicitudPrueba` se amplía en el cliente y en el servidor, y `conId` debe copiar también los campos nuevos. Los tests de CU11 y CU13 no cambian. Los tests de CU12 irán en ficheros propios. CU13 gestionará las solicitudes de seguimiento igual que las demás. CU27 incluye en su lista las solicitudes en estado `PENDIENTE_CITACION`, ordenadas por prioridad, fecha e ID, y ofrece un filtro por prioridad; una solicitud deja de aparecer cuando CU25 la cambia a `CITADA`. CU09 y CU10 mostrarán más adelante los seguimientos al paciente. Las issues del CU12 y su sub-issue de servidor y de cliente deben citar esta decisión.
 Pendiente de acordar: la aprobación formal del equipo, especialmente de Natalia (CU13) y Aitana (CU11), los valores máximos admitidos para el intervalo y las repeticiones, y si CU13 necesita estados propios para los seguimientos.
 
-## D-031 · Gestión de agendas propias de realización (CU14)
-Fecha: 23/11/2026 · It. 4 · Acta: pendiente · Issue: #142, #143, #144
-Contexto: CU14 permite al médico gestionar agendas de realización, mientras CU26 gestiona la agenda médica diaria y CU29 gestiona sus huecos.
-Decisión: CU14 reutiliza `AgendaMedica` y sus datos (`medicoId`, fecha, intervalo horario, observaciones y estado activo), sin cambiar las operaciones administrativas de CU26 ni el contrato de CU29. El médico puede crear, consultar, modificar y eliminar lógicamente solo sus propias agendas. La propiedad la determina el `medicoId` explícito de `Usuario`, enviado en `X-Medico-Id` junto con `X-Usuario` y `X-Rol`; el servidor asigna el médico propietario al crear y lo conserva al modificar, sin confiar en el valor enviado en el cuerpo. (propuesta)
-Motivo: se reutiliza el modelo ya consumido por CU29 y se evita duplicar el concepto de agenda; la identidad explícita permite comprobar en el servidor la propiedad de cada agenda.
-Consecuencias: CU14 expone operaciones y pantalla separadas de las de CU26. El control de identidad sigue la simplificación temporal de D-023 y no sustituye la autenticación real prevista con SSO.
-Pendiente de acordar: ratificación formal del equipo.
+## D-031 · Gestión de las solicitudes por el médico: estados gestionables (CU13)
+Fecha: 18/11/2026 · It. 4 · Acta: pendiente · Issue: #99, #109, #110 · Relacionada con CU11, CU12 y CU25
+Contexto: CU13 permite al médico consultar, modificar y anular las solicitudes de prueba creadas en CU11 y CU12 (D-018). D-026 define los estados de la solicitud, pero no dice en cuáles se puede modificar o anular.
+Decisión: (1) Solo se puede modificar o anular una solicitud en estado `PENDIENTE_CITACION`; en cualquier otro estado el servidor lanza `SolicitudNoGestionableException`. (2) Consultar, modificar y anular exigen el rol Médico (D-016 y D-023). (3) El cliente solo activa los botones Modificar y Anular con una solicitud pendiente de citación, pero la regla la aplica el servidor (D-013). (propuesta)
+Alternativas: permitir modificar solicitudes ya citadas; permitir anular una solicitud citada cancelando también su cita.
+Motivo: una solicitud citada ya está en manos de CU25; cambiarla desde CU13 dejaría la cita y la solicitud incoherentes.
+Consecuencias: CU13 no toca las citas. Una solicitud `CITADA` vuelve a ser gestionable solo si CU25 cancela su cita y la devuelve a `PENDIENTE_CITACION` (D-032). `EstadoSolicitud.permiteGestion()` concentra esta regla.
+Pendiente de acordar: la aprobación formal del equipo, especialmente de Natalia (CU13).
 
 
 ## D-032 · Gestión de las citas por el personal administrativo (CU25)
@@ -246,3 +247,29 @@ Decisión: (1) La política contiene la antelación mínima para reservar, en ho
 Alternativas: dejar los valores iniciales sin definir; aplicar las políticas directamente al flujo de gestión de citas de CU25 en esta misma implementación.
 Motivo: disponer de una configuración consultable y válida desde el primer arranque, manteniendo la validación de negocio en el servidor.
 Consecuencias: la política se almacena en memoria y se pierde al reiniciar el servidor. CU36 configura y guarda los valores; su aplicación al flujo de reservas y cancelaciones de CU25 queda fuera del alcance de estas issues y requerirá acordarse aparte. Las ramas de implementación son feature/CU36-servidor y feature/CU36-cliente.
+
+## D-035 · Gestión de agendas propias de realización (CU14)
+Fecha: 23/11/2026 · It. 4 · Acta: pendiente · Issue: #142, #143, #144
+Contexto: CU14 permite al médico gestionar agendas de realización, mientras CU26 gestiona la agenda médica diaria y CU29 gestiona sus huecos.
+Decisión: CU14 reutiliza `AgendaMedica` y sus datos (`medicoId`, fecha, intervalo horario, observaciones y estado activo), sin cambiar las operaciones administrativas de CU26 ni el contrato de CU29. El médico puede crear, consultar, modificar y eliminar lógicamente solo sus propias agendas. La propiedad la determina el `medicoId` explícito de `Usuario`, enviado en `X-Medico-Id` junto con `X-Usuario` y `X-Rol`; el servidor asigna el médico propietario al crear y lo conserva al modificar, sin confiar en el valor enviado en el cuerpo. (propuesta)
+Motivo: se reutiliza el modelo ya consumido por CU29 y se evita duplicar el concepto de agenda; la identidad explícita permite comprobar en el servidor la propiedad de cada agenda.
+Consecuencias: CU14 expone operaciones y pantalla separadas de las de CU26. El control de identidad sigue la simplificación temporal de D-023 y no sustituye la autenticación real prevista con SSO.
+Pendiente de acordar: ratificación formal del equipo.
+
+## D-036 · Modificación y anulación de solicitudes (CU13)
+Fecha: 18/11/2026 · It. 4 · Acta: pendiente · Issue: #99, #109, #110 · Relacionada con CU11, CU12 y D-031
+Contexto: D-031 fija qué solicitudes se pueden gestionar, pero falta definir qué datos puede cambiar el médico y qué se guarda al anular.
+Decisión: (1) Al modificar solo cambian la indicación clínica, la justificación, la prioridad y, en un seguimiento, la periodicidad; el paciente, el médico, el tipo de prueba, la fecha, el estado y la solicitud original se conservan. (2) La indicación, la justificación y la prioridad son obligatorias; la periodicidad solo se informa en un seguimiento y completa, con intervalo y repeticiones mayores que 0 (D-030). (3) Anular exige un motivo no vacío; la solicitud pasa a `ANULADA` y se guardan el motivo (`motivoAnulacion`) y la fecha de anulación (`fechaAnulacion`). (4) La solicitud anulada se conserva y no se elimina. (propuesta)
+Alternativas: permitir cambiar también el tipo de prueba o el paciente; anular sin motivo; borrar la solicitud al anularla.
+Motivo: cambiar el paciente o el tipo de prueba equivale a una solicitud distinta, que debe crearse de nuevo; el motivo y la fecha dejan constancia de por qué se anuló.
+Consecuencias: `SolicitudPrueba` gana los campos `motivoAnulacion` y `fechaAnulacion`, nulos si no está anulada, y un constructor más largo. El cliente valida el formato (D-013) y el servidor las reglas de negocio.
+Pendiente de acordar: la aprobación formal del equipo, especialmente de Natalia (CU13).
+
+## D-037 · Rutas HTTP de la gestión de solicitudes (CU13)
+Fecha: 18/11/2026 · It. 4 · Acta: pendiente · Issue: #99, #109, #110 · Relacionada con CU11, CU12, D-022 y D-031
+Contexto: CU11 y CU12 ya usan `POST /solicitudes`. CU13 necesita rutas para consultar, modificar y anular solicitudes.
+Decisión: (1) `GET /solicitudes` devuelve las solicitudes, con los filtros opcionales y combinables `pacienteId`, `estado` y `prioridad`, ordenadas por prioridad, fecha de solicitud e id. (2) `PUT /solicitudes/{id}` modifica los datos permitidos por D-036. (3) `POST /solicitudes/{id}/anulacion` anula la solicitud con el cuerpo `{"motivo": "..."}`. (4) Errores: 403 `SIN_PERMISO`, 404 `NO_ENCONTRADO`, 409 `ESTADO_NO_PERMITIDO` si no está pendiente de citación (D-031) y 400 `DATOS_INVALIDOS`. (propuesta)
+Alternativas: una ruta distinta para cada filtro; anular con `DELETE /solicitudes/{id}`.
+Motivo: se reutiliza la ruta `/solicitudes` y su formato (D-022); `POST …/anulacion` deja claro que la solicitud se conserva.
+Consecuencias: el cliente HTTP construye la consulta con `FiltroSolicitudes.comoParametros()`. CU27 consulta la lista de espera por su ruta propia, `/listas-espera`.
+Pendiente de acordar: la aprobación formal del equipo, especialmente de Natalia (CU13).

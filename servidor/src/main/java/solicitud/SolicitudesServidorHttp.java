@@ -29,7 +29,7 @@ import paciente.Usuario;
 
 /**
  * Comunicacion HTTP de CU11, CU12, CU13 y CU27. Utiliza JSON siguiendo D-022.
- * CU13 (D-033): GET /solicitudes con filtros, PUT /solicitudes/{id} y POST /solicitudes/{id}/anulacion.
+ * CU13 (D-037): GET /solicitudes con filtros, PUT /solicitudes/{id} y POST /solicitudes/{id}/anulacion.
  */
 public class SolicitudesServidorHttp {
 
@@ -93,7 +93,7 @@ public class SolicitudesServidorHttp {
                         error("NO_ENCONTRADO"));
 
             } catch (SolicitudNoGestionableException e) {
-                //CU13: la solicitud ya no esta pendiente de citacion (D-033)
+                //CU13: la solicitud ya no esta pendiente de citacion (D-037)
                 responder(exchange, 409,
                         error("ESTADO_NO_PERMITIDO"));
 

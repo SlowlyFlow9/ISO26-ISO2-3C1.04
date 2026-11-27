@@ -21,7 +21,7 @@ public record FiltroSolicitudes(Long pacienteId, EstadoSolicitud estado, Priorid
                 && (prioridad == null || solicitud.getPrioridad() == prioridad);
     }
 
-    //Parametros de la peticion GET /solicitudes (D-033); vacio si no hay criterios
+    //Parametros de la peticion GET /solicitudes (D-037); vacio si no hay criterios
     public String comoParametros() {
         List<String> parametros = new ArrayList<>();
         if (pacienteId != null) parametros.add("pacienteId=" + pacienteId);

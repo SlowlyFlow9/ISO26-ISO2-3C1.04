@@ -30,7 +30,7 @@ public final class ValidadorGestionSolicitud {
         return errores;
     }
 
-    /** Valida la anulacion: el motivo es obligatorio (D-032). */
+    /** Valida la anulacion: el motivo es obligatorio (D-036). */
     public static List<String> validarAnulacion(String motivo) {
         List<String> errores = new ArrayList<>();
         if (estaVacio(motivo)) errores.add("El motivo de la anulación es obligatorio");

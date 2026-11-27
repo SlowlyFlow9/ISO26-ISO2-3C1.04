@@ -26,7 +26,7 @@ import paciente.PacientesServiceImpl;
 import paciente.PacientesServidorHttp;
 import tipoprueba.RepositorioTiposPruebaMemoria;
 
-/** CU13 - Servidor: rutas HTTP de la gestión de solicitudes (D-033). */
+/** CU13 - Servidor: rutas HTTP de la gestión de solicitudes (D-037). */
 class SolicitudesServidorHttpGestionTest {
 
     private static final LocalDateTime FECHA = LocalDateTime.of(2026, 11, 10, 9, 0);
