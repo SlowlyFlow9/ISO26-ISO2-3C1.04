@@ -36,6 +36,12 @@ import cita.PoliticaCitaRepositorioMemoria;
 import cita.PoliticaCitaService;
 import cita.PoliticaCitaServiceImpl;
 import cita.PoliticasCitaServidorHttp;
+
+// CU06: historial de pruebas realizadas.
+import cita.HistorialPruebasService;
+import cita.HistorialPruebasServiceImpl;
+import cita.HistorialPruebasServidorHttp;
+
 import solicitud.SolicitudesRepositorioMemoria;
 import solicitud.SolicitudesService;
 import solicitud.SolicitudesServiceImpl;
@@ -174,13 +180,22 @@ public class Servidor {
 
         ListaEsperaService servicioListaEspera =
                 new ListaEsperaServiceImpl(solicitudes);
+
         ReglasPrioridadService servicioReglasPrioridad =
                 new ReglasPrioridadServiceImpl(reglasPrioridad);
+
         // CU01 y CU02: consulta y confirmación de citas.
         CitasService servicioCitas =
                 new CitasServiceImpl(
                         citas,
                         identidadPaciente
+                );
+
+        // CU06: historial de pruebas realizadas.
+        // Reutiliza el servicio de citas existente.
+        HistorialPruebasService servicioHistorial =
+                new HistorialPruebasServiceImpl(
+                        servicioCitas
                 );
 
         // CU29: servicio de gestión de huecos.
@@ -217,6 +232,7 @@ public class Servidor {
                 http,
                 servicioListaEspera
         );
+
         ReglasPrioridadServidorHttp.registrar(
                 http,
                 servicioReglasPrioridad
@@ -232,6 +248,7 @@ public class Servidor {
                 http,
                 servicioAgendas
         );
+
         // CU35: registrar la configuracion horaria.
         HorarioServicioServidorHttp.registrar(
                 http,
@@ -244,7 +261,13 @@ public class Servidor {
                 servicioCitas
         );
 
-        // CU36: registrar la configuracion de politicas de citacion.
+        // CU06: ruta HTTP del historial de pruebas
+        HistorialPruebasServidorHttp.registrar(
+                http,
+                servicioHistorial
+        );
+
+        // CU36: registrar la configuracion de politicas de citacion
         PoliticasCitaServidorHttp.registrar(
                 http,
                 servicioPoliticaCita
@@ -266,5 +289,8 @@ public class Servidor {
         System.out.println("/citas/{id}");
         System.out.println("/citas/{id}/confirmar");
         System.out.println("/politicas-citacion");
+
+        //CU06: consultar historial de pruebas realizadas
+        System.out.println("/historial-pruebas");
     }
 }
