@@ -2,6 +2,7 @@ package paciente;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 import com.sun.net.httpserver.HttpServer;
@@ -32,6 +33,11 @@ import cita.PoliticaCitaRepositorioMemoria;
 import cita.PoliticaCitaService;
 import cita.PoliticaCitaServiceImpl;
 import cita.PoliticasCitaServidorHttp;
+import notificacion.Notificacion;
+import notificacion.NotificacionesRepositorioMemoria;
+import notificacion.NotificacionesService;
+import notificacion.NotificacionesServiceImpl;
+import notificacion.NotificacionesServidorHttp;
 import solicitud.SolicitudesRepositorioMemoria;
 import solicitud.SolicitudesService;
 import solicitud.SolicitudesServiceImpl;
@@ -67,6 +73,9 @@ public class Servidor {
 
         IdentidadPacienteMemoria identidadPaciente =
                 new IdentidadPacienteMemoria();
+
+        NotificacionesRepositorioMemoria notificaciones =
+                new NotificacionesRepositorioMemoria();
 
         // CU36: repositorio de politicas de citacion.
         PoliticaCitaRepositorioMemoria politicaCita =
@@ -146,6 +155,14 @@ public class Servidor {
 
             citas.guardar(citaDemo);
 
+            notificaciones.guardar(new Notificacion(
+                    1L,
+                    pacienteDemo.getId(),
+                    "Aviso de demostración",
+                    "Esta notificación permite comprobar la consulta de CU05.",
+                    LocalDateTime.now(),
+                    false));
+
             System.out.println(
                     "CU02 - Usuario: paciente-demo");
             System.out.println(
@@ -173,6 +190,11 @@ public class Servidor {
                         citas,
                         identidadPaciente
                 );
+
+        NotificacionesService servicioNotificaciones =
+                new NotificacionesServiceImpl(
+                        notificaciones,
+                        identidadPaciente);
 
         // CU29: servicio de gestión de huecos.
         HuecosAgendaService servicioHuecos =
@@ -231,6 +253,11 @@ public class Servidor {
                 servicioCitas
         );
 
+        NotificacionesServidorHttp.registrar(
+                http,
+                servicioNotificaciones
+        );
+
         // CU36: registrar la configuracion de politicas de citacion.
         PoliticasCitaServidorHttp.registrar(
                 http,
@@ -251,6 +278,7 @@ public class Servidor {
         System.out.println("/citas");
         System.out.println("/citas/{id}");
         System.out.println("/citas/{id}/confirmar");
+        System.out.println("/notificaciones");
         System.out.println("/politicas-citacion");
     }
 }
