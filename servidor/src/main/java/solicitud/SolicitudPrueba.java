@@ -175,6 +175,27 @@ public class SolicitudPrueba {
         );
     }
 
+    //CU28: devuelve una copia de la solicitud con otra prioridad (D-038); el resto se conserva
+    public SolicitudPrueba conPrioridad(Prioridad nuevaPrioridad) {
+        return new SolicitudPrueba(
+            id,
+            pacienteId,
+            medicoId,
+            tipoPruebaId,
+            indicacionClinica,
+            justificacion,
+            nuevaPrioridad,
+            fechaSolicitud,
+            estado,
+            intervalo,
+            unidad,
+            numeroRepeticiones,
+            solicitudOrigenId,
+            motivoAnulacion,
+            fechaAnulacion
+        );
+    }
+
     //Devuelve una copia de la solicitud con otro id
     public SolicitudPrueba conId(long nuevoId) {
         return new SolicitudPrueba(
