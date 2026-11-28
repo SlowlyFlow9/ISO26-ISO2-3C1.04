@@ -4,8 +4,11 @@ import javax.swing.JFrame;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
 
+import cita.CitasIncidenciasService;
+import cita.CitasIncidenciasServiceHttp;
 import cita.CitasRealizacionService;
 import cita.CitasRealizacionServiceHttp;
+import cita.PantallaIncidenciasCita;
 import cita.PantallaRealizarPrueba;
 import paciente.Rol;
 import paciente.Usuario;
@@ -39,6 +42,8 @@ public final class AppAgendasRealizacion {
                     new AgendasServiceHttp(urlServidor);
             CitasRealizacionService servicioCitas =
                     new CitasRealizacionServiceHttp(urlServidor);
+            CitasIncidenciasService servicioIncidencias =
+                    new CitasIncidenciasServiceHttp(urlServidor);
 
             JTabbedPane pestanas = new JTabbedPane();
             pestanas.addTab(
@@ -48,9 +53,13 @@ public final class AppAgendasRealizacion {
                     "Pruebas (CU19)",
                     new PantallaRealizarPrueba(
                             servicioCitas, usuario));
+            pestanas.addTab(
+                    "Incidencias (CU20)",
+                    new PantallaIncidenciasCita(
+                            servicioIncidencias, usuario));
 
             JFrame ventana = new JFrame(
-                    "Gestión médica - agendas y pruebas");
+                    "Gestión médica - agendas, pruebas e incidencias");
             ventana.setDefaultCloseOperation(
                     JFrame.EXIT_ON_CLOSE);
             ventana.setContentPane(pestanas);
