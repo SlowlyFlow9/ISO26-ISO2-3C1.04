@@ -21,6 +21,10 @@ import agenda.HuecosAgendaServidorHttp;
 
 import solicitud.ListaEsperaService;
 import solicitud.ListaEsperaServiceImpl;
+import solicitud.ReglasPrioridadRepositorioMemoria;
+import solicitud.ReglasPrioridadService;
+import solicitud.ReglasPrioridadServiceImpl;
+import solicitud.ReglasPrioridadServidorHttp;
 import cita.Cita;
 import cita.CitasRepositorioMemoria;
 import cita.CitasService;
@@ -59,6 +63,9 @@ public class Servidor {
 
         SolicitudesRepositorioMemoria solicitudes =
                 new SolicitudesRepositorioMemoria();
+
+        ReglasPrioridadRepositorioMemoria reglasPrioridad =
+                new ReglasPrioridadRepositorioMemoria();
 
         // CU14 y CU29: repositorios de agendas y huecos.
         // CU01 y CU02: repositorio compartido de citas.
@@ -167,6 +174,8 @@ public class Servidor {
 
         ListaEsperaService servicioListaEspera =
                 new ListaEsperaServiceImpl(solicitudes);
+        ReglasPrioridadService servicioReglasPrioridad =
+                new ReglasPrioridadServiceImpl(reglasPrioridad);
         // CU01 y CU02: consulta y confirmación de citas.
         CitasService servicioCitas =
                 new CitasServiceImpl(
@@ -208,6 +217,10 @@ public class Servidor {
                 http,
                 servicioListaEspera
         );
+        ReglasPrioridadServidorHttp.registrar(
+                http,
+                servicioReglasPrioridad
+        );
 
         // CU29: registrar rutas HTTP de huecos.
         HuecosAgendaServidorHttp.registrar(
@@ -245,6 +258,7 @@ public class Servidor {
         System.out.println("/solicitudes");
         System.out.println("/solicitudes/tipos");
         System.out.println("/listas-espera");
+        System.out.println("/reglas-prioridad");
         System.out.println("/huecos");
         System.out.println("/agendas-realizacion");
         System.out.println("/horarios-servicio");
