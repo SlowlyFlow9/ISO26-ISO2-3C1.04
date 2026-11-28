@@ -22,6 +22,7 @@ import paciente.Usuario;
  * GET  /citas
  * GET  /citas/{id}
  * POST /citas/{id}/confirmar
+ * POST /citas/{id}/realizar
  */
 
 public final class CitasServidorHttp {
@@ -41,6 +42,14 @@ public final class CitasServidorHttp {
             HttpServer servidor,
             CitasService servicio) {
 
+        registrar(servidor, servicio, null);
+    }
+
+    public static void registrar(
+            HttpServer servidor,
+            CitasService servicio,
+            CitasRealizacionService servicioRealizacion) {
+
         if (servidor == null || servicio == null) {
             throw new IllegalArgumentException(
                     "Servidor y servicio obligatorios");
@@ -49,7 +58,7 @@ public final class CitasServidorHttp {
         servidor.createContext("/citas", exchange -> {
 
             try {
-                atender(exchange, servicio);
+                atender(exchange, servicio, servicioRealizacion);
 
             } catch (SinPermisoException
                     | PacienteNoVinculadoException e) {
@@ -57,7 +66,8 @@ public final class CitasServidorHttp {
                 responder(exchange, 403,
                         error("SIN_PERMISO", e.getMessage()));
 
-            } catch (CitaNoEncontradaException e) {
+            } catch (CitaNoEncontradaException
+                    | SolicitudNoEncontradaException e) {
 
                 responder(exchange, 404,
                         error("NO_ENCONTRADA", e.getMessage()));
@@ -66,6 +76,11 @@ public final class CitasServidorHttp {
 
                 responder(exchange, 409,
                         error("NO_CONFIRMABLE", e.getMessage()));
+
+            } catch (CitaNoRealizableException e) {
+
+                responder(exchange, 409,
+                        error("NO_REALIZABLE", e.getMessage()));
 
             } catch (IllegalArgumentException e) {
 
@@ -83,11 +98,14 @@ public final class CitasServidorHttp {
 
     private static void atender(
             HttpExchange exchange,
-            CitasService servicio)
+            CitasService servicio,
+            CitasRealizacionService servicioRealizacion)
             throws IOException, SinPermisoException,
             PacienteNoVinculadoException,
             CitaNoEncontradaException,
-            CitaNoConfirmableException {
+            CitaNoConfirmableException,
+            CitaNoRealizableException,
+            SolicitudNoEncontradaException {
 
         String ruta =
                 exchange.getRequestURI().getPath();
@@ -95,7 +113,7 @@ public final class CitasServidorHttp {
         String metodo =
                 exchange.getRequestMethod();
 
-        Usuario paciente = leerUsuario(exchange);
+        Usuario usuario = leerUsuario(exchange);
 
         // CU01 - Listar las citas propias.
         if (ruta.equals("/citas")) {
@@ -108,7 +126,7 @@ public final class CitasServidorHttp {
 
             responder(exchange, 200,
                     GSON.toJson(
-                            servicio.listarMisCitas(paciente)));
+                            servicio.listarMisCitas(usuario)));
             return;
         }
 
@@ -136,7 +154,27 @@ public final class CitasServidorHttp {
                 responder(exchange, 200,
                         GSON.toJson(
                                 servicio.consultarMiCita(
-                                        paciente, citaId)));
+                                        usuario, citaId)));
+                return;
+            }
+
+            if (partes.length == 4
+                    && partes[3].equals("realizar")) {
+                if (!metodo.equals("POST")) {
+                    responder(exchange, 405,
+                            error("METODO_NO_PERMITIDO", null));
+                    return;
+                }
+                if (servicioRealizacion == null) {
+                    responder(exchange, 404,
+                            error("NO_ENCONTRADA", null));
+                    return;
+                }
+
+                responder(exchange, 200,
+                        GSON.toJson(
+                                servicioRealizacion.marcarRealizada(
+                                        usuario, citaId)));
                 return;
             }
 
@@ -152,7 +190,7 @@ public final class CitasServidorHttp {
 
                 Cita confirmada =
                         servicio.confirmarMiCita(
-                                paciente, citaId);
+                                usuario, citaId);
 
                 responder(exchange, 200,
                         GSON.toJson(confirmada));
@@ -172,6 +210,8 @@ public final class CitasServidorHttp {
 
         String rol = exchange.getRequestHeaders()
                 .getFirst("X-Rol");
+        String medicoId = exchange.getRequestHeaders()
+                .getFirst("X-Medico-Id");
 
         if (nombre == null || nombre.isBlank()
                 || rol == null) {
@@ -179,8 +219,17 @@ public final class CitasServidorHttp {
         }
 
         try {
-            return new Usuario(
-                    nombre, Rol.valueOf(rol));
+            Rol rolUsuario = Rol.valueOf(rol);
+            if (medicoId == null) {
+                return new Usuario(nombre, rolUsuario);
+            }
+
+            long id = Long.parseLong(medicoId);
+            if (id <= 0) {
+                return null;
+            }
+
+            return new Usuario(nombre, rolUsuario, id);
 
         } catch (IllegalArgumentException e) {
             return null;

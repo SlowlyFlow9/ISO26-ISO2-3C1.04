@@ -239,6 +239,15 @@ Alternativas: limitar cada día a un único intervalo; validar también las regl
 Motivo: admitir horarios con pausas sin duplicar la validación de negocio; el servidor sigue siendo la autoridad para aceptar o rechazar la configuración.
 Consecuencias: el horario se almacena en memoria y se pierde al reiniciar el servidor. El cliente y el servidor mantienen sus modelos en sus respectivos módulos. Las ramas de implementación son feature/CU35-servidor y feature/CU35-cliente.
 
+## D-034 · Marcar una prueba como realizada (CU19)
+Fecha: 27/11/2026 · It. 5 · Acta: 9 · Issue: #169, #171, #172
+Contexto: CU19 permite al médico marcar como realizada una prueba asociada a una cita. Las citas de CU25 pueden estar vinculadas a solicitudes de prueba, y el sistema identifica al médico mediante su rol y su identificador (D-016, D-023 y D-032).
+Decisión: solo el médico asignado a la cita puede realizar la operación. Se aceptan citas `PROGRAMADA` o `CONFIRMADA`; la cita pasa a `REALIZADA` y, si está vinculada a una solicitud `CITADA`, esta también pasa a `REALIZADA`. Si la solicitud vinculada no existe o no está `CITADA`, se rechaza la operación sin modificar la cita.
+Alternativas: permitir realizar citas en otros estados o actualizar la cita aunque la solicitud vinculada no pueda actualizarse.
+Motivo: limitar la transición a citas vigentes y evitar inconsistencias entre la cita y la solicitud.
+Consecuencias: el servidor expone `POST /citas/{id}/realizar`. Los cambios de estado se guardan mediante los repositorios existentes y quedan pendientes de ratificación formal por el equipo.
+Pendiente de acordar: la aprobación formal del equipo.
+
 
 ## D-034 · Configuración de las políticas de citación (CU36)
 Fecha: 23/11/2026 · It. 5 · Acta: 7 · Issue: #137, #138, #139
