@@ -25,6 +25,10 @@ import solicitud.ReglasPrioridadRepositorioMemoria;
 import solicitud.ReglasPrioridadService;
 import solicitud.ReglasPrioridadServiceImpl;
 import solicitud.ReglasPrioridadServidorHttp;
+import solicitud.CambiosPrioridadRepositorioMemoria;
+import solicitud.PrioridadesService;
+import solicitud.PrioridadesServiceImpl;
+import solicitud.PrioridadesServidorHttp;
 import cita.Cita;
 import cita.CitasRepositorioMemoria;
 import cita.CitasService;
@@ -176,6 +180,15 @@ public class Servidor {
                 new ListaEsperaServiceImpl(solicitudes);
         ReglasPrioridadService servicioReglasPrioridad =
                 new ReglasPrioridadServiceImpl(reglasPrioridad);
+
+        // CU28: gestión de prioridades con las reglas de CU37.
+        PrioridadesService servicioPrioridades =
+                new PrioridadesServiceImpl(
+                        solicitudes,
+                        reglasPrioridad,
+                        new CambiosPrioridadRepositorioMemoria()
+                );
+
         // CU01 y CU02: consulta y confirmación de citas.
         CitasService servicioCitas =
                 new CitasServiceImpl(
@@ -222,6 +235,12 @@ public class Servidor {
                 servicioReglasPrioridad
         );
 
+        // CU28: registrar rutas HTTP de prioridades.
+        PrioridadesServidorHttp.registrar(
+                http,
+                servicioPrioridades
+        );
+
         // CU29: registrar rutas HTTP de huecos.
         HuecosAgendaServidorHttp.registrar(
                 http,
@@ -259,6 +278,7 @@ public class Servidor {
         System.out.println("/solicitudes/tipos");
         System.out.println("/listas-espera");
         System.out.println("/reglas-prioridad");
+        System.out.println("/prioridades");
         System.out.println("/huecos");
         System.out.println("/agendas-realizacion");
         System.out.println("/horarios-servicio");
