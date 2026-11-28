@@ -273,3 +273,20 @@ Alternativas: una ruta distinta para cada filtro; anular con `DELETE /solicitude
 Motivo: se reutiliza la ruta `/solicitudes` y su formato (D-022); `POST …/anulacion` deja claro que la solicitud se conserva.
 Consecuencias: el cliente HTTP construye la consulta con `FiltroSolicitudes.comoParametros()`. CU27 consulta la lista de espera por su ruta propia, `/listas-espera`.
 Pendiente de acordar: la aprobación formal del equipo, especialmente de Natalia (CU13).
+## D-038 · Cambio de prioridad por el personal administrativo (CU28)
+Fecha: 28/11/2026 · It. 6 · Acta: 19/11 · Issue: CU28 (padre, servidor y cliente) · Relacionada con CU13, CU25, CU27, CU37, D-017 y D-031
+Contexto: el médico fija la prioridad clínica al prescribir (CU11, CU12) y puede modificarla (CU13). CU28 permite al personal administrativo gestionar prioridades y CU37 permite al administrador configurar reglas de prioridad, pero no se ha definido qué puede cambiar el personal administrativo ni cómo se justifica.
+Decisión: (1) El personal administrativo puede cambiar la prioridad (urgente, preferente u ordinaria) de una solicitud en `PENDIENTE_CITACION`; las solicitudes citadas, realizadas o anuladas no se pueden cambiar (D-031). (2) Cada cambio exige una regla de prioridad activa de CU37 y un motivo no vacío, y la nueva prioridad debe ser distinta de la actual. (3) Solo cambia la prioridad; los datos clínicos y el resto de la solicitud se conservan. (4) Cada cambio se guarda en un historial (`CambioPrioridad`) con la prioridad anterior, la nueva, la regla, el motivo, quién lo hizo y cuándo (D-017). (5) CU27 y CU25 usan la prioridad vigente, sin cambios en su código. (propuesta)
+Alternativas: cambiar la prioridad sin regla ni motivo; permitir solo subir la prioridad; guardar únicamente la última modificación en la propia solicitud.
+Motivo: la regla de CU37 y el motivo justifican cada cambio frente al criterio clínico del médico, y el historial permite saber quién alteró el orden de la lista de espera y por qué.
+Consecuencias: `SolicitudPrueba` gana un método `conPrioridad`, como ya tiene `conId` y `conEstado`. Se crean la entidad `CambioPrioridad`, su repositorio en memoria (D-024) y el servicio `PrioridadesService`. CU28 depende del repositorio de reglas de CU37.
+Pendiente de acordar: la aprobación formal del equipo, si el personal administrativo puede bajar una prioridad fijada por el médico o solo subirla, y la relación definitiva con las reglas de CU37 (con Carlos).
+
+## D-039 · Rutas HTTP de la gestión de prioridades (CU28)
+Fecha: 28/11/2026 · It. 6 · Acta: 19/11 · Issue: CU28 (servidor y cliente) · Relacionada con D-022, D-037 y D-038
+Contexto: CU28 necesita rutas para consultar las solicitudes pendientes con su prioridad, cambiar la prioridad y consultar el historial.
+Decisión: (1) `GET /prioridades?prioridad=` devuelve las solicitudes en `PENDIENTE_CITACION`, ordenadas por prioridad, fecha de solicitud e id, con filtro opcional por prioridad. (2) `PUT /prioridades/{solicitudId}` cambia la prioridad con el cuerpo `{"prioridad": "...", "reglaPrioridadId": ..., "motivo": "..."}`. (3) `GET /prioridades/{solicitudId}/historial` devuelve los cambios del más reciente al más antiguo. (4) Errores: 403 `SIN_PERMISO`, 404 `NO_ENCONTRADO`, 409 `ESTADO_NO_PERMITIDO` si la solicitud no está pendiente de citación y 400 `DATOS_INVALIDOS`. (propuesta)
+Alternativas: añadir las operaciones a `/solicitudes`, compartida con CU11 a CU13; reutilizar `/listas-espera` de CU27.
+Motivo: una ruta propia separa la gestión administrativa de la prioridad de la gestión clínica de CU13, que usa `/solicitudes` con el rol Médico.
+Consecuencias: el servidor registra un contexto nuevo `/prioridades`, sin cambiar las rutas de CU13 ni de CU27.
+Pendiente de acordar: la aprobación formal del equipo.
