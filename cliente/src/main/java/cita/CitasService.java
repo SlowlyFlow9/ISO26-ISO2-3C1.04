@@ -38,4 +38,22 @@ public interface CitasService {
             CitaNoEncontradaException,
             CitaNoModificableException,
             CancelacionFueraDePlazoException;
+
+   //CU03: huecos libres que el paciente puede elegir
+   List<HuecoLibre> listarHuecosLibres(
+            Usuario solicitante)
+            throws SinPermisoException,
+            PacienteNoVinculadoException;
+
+   //CU03: cambiar una cita propia a otro hueco libre
+   Cita cambiarMiCita(
+            Usuario solicitante,
+            long citaId,
+            long nuevoHuecoId)
+            throws SinPermisoException,
+            PacienteNoVinculadoException,
+            CitaNoEncontradaException,
+            CitaNoModificableException,
+            HuecoNoDisponibleException,
+            CambioFueraDePoliticaException;
 }
